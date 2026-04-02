@@ -1250,7 +1250,8 @@ let state = JSON.parse(localStorage.getItem('event-app') || 'null') || {
   agenda: [],
   tables: [],
   tasks: [],
-  photos: []
+  photos: [],
+  providers: []
 };
 // migrate old state
 if (!state.tables) state.tables = [];
@@ -2765,6 +2766,9 @@ function renderAdminPanel() {
 function getAdminUsers() {
   try { return JSON.parse(localStorage.getItem('admin-users') || '[]'); } catch { return []; }
 }
+function getAdminUsersLegacy() {
+  try { return JSON.parse(localStorage.getItem('admin-users') || '[]'); } catch { return []; }
+}
 function saveAdminUsers(users) { localStorage.setItem('admin-users', JSON.stringify(users)); }
 
 function registerCurrentUser() {
@@ -3193,10 +3197,9 @@ function renderUserBar() {
 }
 
 // Override getAdminUsers so the admin panel shows app-users
-const _origGetAdminUsers = getAdminUsers;
 function getAdminUsers() {
   const appUsers = loadAppUsers();
-  if (!appUsers.length) return _origGetAdminUsers();
+  if (!appUsers.length) return getAdminUsersLegacy();
   return appUsers.map(u => ({
     eventTitle: u.name + ' (' + u.email + ')',
     registeredAt: u.registeredAt,
