@@ -3005,42 +3005,60 @@ function hideWelcome() {
 
 function showPlans() {
   _selectedPlan = null;
-  document.getElementById('plans-row').style.display = 'flex';
-  document.getElementById('auth-form-wrap').style.display = 'none';
-  document.getElementById('welcome-links').style.display = '';
+  const plansRow = document.getElementById('plans-row');
+  const authWrap = document.getElementById('auth-form-wrap');
+  const links    = document.getElementById('welcome-links');
+  if (plansRow) plansRow.style.display = 'flex';
+  if (authWrap) authWrap.style.display = 'none';
+  if (links)    links.style.display    = '';
 }
 
 function selectPlan(plan) {
   _selectedPlan = plan;
-  document.getElementById('plans-row').style.display = 'none';
-  document.getElementById('welcome-links').style.display = 'none';
+  const plansRow = document.getElementById('plans-row');
+  const links    = document.getElementById('welcome-links');
+  if (plansRow) plansRow.style.display = 'none';
+  if (links)    links.style.display    = 'none';
   showRegisterForm();
   const badge = document.getElementById('auth-selected-badge');
-  if (plan === 'mievento') {
-    badge.innerHTML = '<span class="auth-plan-badge free">Plan: Mi Evento — Gratis 1 mes</span>';
-  } else {
-    badge.innerHTML = '<span class="auth-plan-badge pro">Plan: Organizador de Eventos — $30/año</span>';
+  if (badge) {
+    badge.innerHTML = plan === 'mievento'
+      ? '<span class="auth-plan-badge free">Plan: Mi Evento — Gratis 1 mes</span>'
+      : '<span class="auth-plan-badge pro">Plan: Organizador de Eventos — $30/año</span>';
   }
 }
 
 function showRegisterForm() {
-  document.getElementById('auth-form-wrap').style.display = 'block';
-  document.getElementById('auth-register-section').style.display = '';
-  document.getElementById('auth-login-section').style.display = 'none';
-  document.getElementById('reg-error').textContent = '';
-  document.getElementById('plans-row').style.display = 'none';
+  const authWrap  = document.getElementById('auth-form-wrap');
+  const regSec    = document.getElementById('auth-register-section');
+  const loginSec  = document.getElementById('auth-login-section');
+  const plansRow  = document.getElementById('plans-row');
+  const errEl     = document.getElementById('reg-error');
+  if (authWrap)  authWrap.style.display  = 'block';
+  if (regSec)    regSec.style.display    = '';
+  if (loginSec)  loginSec.style.display  = 'none';
+  if (plansRow)  plansRow.style.display  = 'none';
+  if (errEl)     errEl.textContent       = '';
 }
 
 function showLoginForm() {
   _selectedPlan = null;
-  document.getElementById('plans-row').style.display = 'none';
-  document.getElementById('welcome-links').style.display = 'none';
-  document.getElementById('auth-form-wrap').style.display = 'block';
-  document.getElementById('auth-form-wrap').querySelector('.auth-back').style.display = '';
-  document.getElementById('auth-register-section').style.display = 'none';
-  document.getElementById('auth-login-section').style.display = '';
-  document.getElementById('login-error').textContent = '';
-  document.getElementById('auth-selected-badge').innerHTML = '';
+  const plansRow  = document.getElementById('plans-row');
+  const links     = document.getElementById('welcome-links');
+  const authWrap  = document.getElementById('auth-form-wrap');
+  const regSec    = document.getElementById('auth-register-section');
+  const loginSec  = document.getElementById('auth-login-section');
+  const loginErr  = document.getElementById('login-error');
+  const badge     = document.getElementById('auth-selected-badge');
+  const backBtn   = authWrap ? authWrap.querySelector('.auth-back') : null;
+  if (plansRow)  plansRow.style.display  = 'none';
+  if (links)     links.style.display     = 'none';
+  if (authWrap)  authWrap.style.display  = 'block';
+  if (backBtn)   backBtn.style.display   = '';
+  if (regSec)    regSec.style.display    = 'none';
+  if (loginSec)  loginSec.style.display  = '';
+  if (loginErr)  loginErr.textContent    = '';
+  if (badge)     badge.innerHTML         = '';
 }
 
 async function doRegister() {
