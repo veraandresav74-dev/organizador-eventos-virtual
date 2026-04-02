@@ -2930,6 +2930,8 @@ function renderAll() {
 }
 renderAll();
 startCountdown();
+
+const DEFAULT_COVER = "url('https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=1400&q=80&fit=crop')";
 loadCoverImage();
 
 // Registrar Service Worker (PWA)
@@ -3306,7 +3308,6 @@ function showPaymentToast(type, plan) {
 }
 
 // ---- COVER IMAGE ----
-const DEFAULT_COVER = "url('https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=1400&q=80&fit=crop')";
 
 function applyCoverImage(url) {
   const img = url ? `url('${url}')` : DEFAULT_COVER;
