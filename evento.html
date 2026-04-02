@@ -2921,10 +2921,10 @@ renderTemplateList();
 
 // ---- INIT ----
 function renderAll() {
-  renderGuests(); renderBudget(); renderAgenda();
-  renderTables(); renderTasks(); renderGallery(); renderMusicTab(); renderGifts();
-  renderInvitations(); renderNotes(); renderCheckin(); renderCountdown(); renderDashboard();
-  renderProviders();
+  const fns = [renderGuests, renderBudget, renderAgenda, renderTables, renderTasks,
+               renderGallery, renderMusicTab, renderGifts, renderInvitations,
+               renderNotes, renderCheckin, renderCountdown, renderDashboard, renderProviders];
+  fns.forEach(fn => { try { fn(); } catch(e) { console.warn('renderAll error in ' + fn.name + ':', e); } });
 }
 renderAll();
 startCountdown();
@@ -3030,6 +3030,14 @@ function selectPlan(plan) {
       ? '<span class="auth-plan-badge free">Plan: Mi Evento — Gratis 1 mes</span>'
       : '<span class="auth-plan-badge pro">Plan: Organizador de Eventos — $30/año</span>';
   }
+  // Scroll al inicio del welcome screen para que el formulario sea visible
+  const ws = document.getElementById('welcome-screen');
+  if (ws) { ws.scrollTop = 0; }
+  // Foco en el primer campo
+  setTimeout(() => {
+    const nameField = document.getElementById('reg-name');
+    if (nameField) nameField.focus();
+  }, 100);
 }
 
 function showRegisterForm() {
