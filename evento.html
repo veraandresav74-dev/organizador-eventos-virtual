@@ -3094,46 +3094,28 @@ async function doRegister() {
   if (btn) { btn.disabled = true; btn.textContent = 'Creando cuenta...'; }
 
   try {
-    let user = null;
-    // Intentar API backend; si no está disponible usar localStorage
-    try {
-      const res  = await fetch('/api/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password: pwd, plan: _selectedPlan })
-      });
-      if (res.status === 404 || res.status === 0) throw new Error('no-api');
-      const data = await res.json();
-      if (!res.ok) {
-        // Error de validación real del servidor (email duplicado, etc.)
-        throw new Error(data.error || 'Error al registrar.');
-      }
-      user = data;
-    } catch (apiErr) {
-      if (apiErr.message === 'no-api' || apiErr.message.includes('Failed to fetch') || apiErr.message.includes('NetworkError') || apiErr.message.includes('fetch')) {
-        // Sin backend disponible → registrar en localStorage
-        user = await registerUser(name, email, pwd, _selectedPlan);
-      } else {
-        throw apiErr;
-      }
-    }
-
-    saveAppSession({ userId: user.id, at: Date.now() });
     const users = loadAppUsers();
-    if (!users.find(u => u.id === user.id)) {
-      users.push({
-        id: user.id, name: user.name, email: user.email,
-        passwordHash: '', plan: user.plan, status: user.status,
-        registeredAt: user.registeredAt,
-        trialEndsAt: user.trialEndsAt,
-        subscriptionEndsAt: user.subscriptionEndsAt
-      });
-      saveAppUsers(users);
+    if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
+      throw new Error('Este email ya está registrado.');
     }
+    const pwdHash = await sha256(pwd);
+    const now  = Date.now();
+    const id   = 'u_' + now + '_' + Math.random().toString(36).slice(2,8);
+    const user = {
+      id, name: name.trim(), email: email.toLowerCase(), passwordHash: pwdHash,
+      plan: _selectedPlan,
+      status: _selectedPlan === 'mievento' ? 'trial' : 'active',
+      registeredAt: new Date(now).toISOString(),
+      trialEndsAt: _selectedPlan === 'mievento' ? new Date(now + 30*86400000).toISOString() : null,
+      subscriptionEndsAt: _selectedPlan === 'organizador' ? new Date(now + 365*86400000).toISOString() : null
+    };
+    users.push(user);
+    saveAppUsers(users);
+    saveAppSession({ userId: id, at: now });
     hideWelcome();
     renderUserBar();
   } catch (e) {
-    errEl.textContent = e.message;
+    errEl.textContent = e.message || 'Error al crear la cuenta.';
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = 'Crear cuenta'; }
   }
@@ -3150,42 +3132,16 @@ async function doLogin() {
   if (btn) { btn.disabled = true; btn.textContent = 'Ingresando...'; }
 
   try {
-    let user = null;
-    try {
-      const res  = await fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password: pwd })
-      });
-      if (res.status === 404 || res.status === 0) throw new Error('no-api');
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error al iniciar sesión.');
-      user = data;
-    } catch (apiErr) {
-      if (apiErr.message === 'no-api' || apiErr.message.includes('Failed to fetch') || apiErr.message.includes('NetworkError') || apiErr.message.includes('fetch')) {
-        user = await loginUser(email, pwd);
-      } else {
-        throw apiErr;
-      }
-    }
-
     const users = loadAppUsers();
-    const idx   = users.findIndex(u => u.id === user.id);
-    const localUser = {
-      id: user.id, name: user.name, email: user.email,
-      passwordHash: idx >= 0 ? users[idx].passwordHash : '',
-      plan: user.plan, status: user.status,
-      registeredAt: user.registeredAt,
-      trialEndsAt: user.trialEndsAt,
-      subscriptionEndsAt: user.subscriptionEndsAt
-    };
-    if (idx >= 0) users[idx] = localUser; else users.push(localUser);
-    saveAppUsers(users);
+    const user  = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    if (!user) throw new Error('Email no encontrado.');
+    const hash = await sha256(pwd);
+    if (hash !== user.passwordHash) throw new Error('Contraseña incorrecta.');
     saveAppSession({ userId: user.id, at: Date.now() });
     hideWelcome();
     renderUserBar();
   } catch (e) {
-    errEl.textContent = e.message;
+    errEl.textContent = e.message || 'Error al iniciar sesión.';
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = 'Ingresar'; }
   }
