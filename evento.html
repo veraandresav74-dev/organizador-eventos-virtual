@@ -1,0 +1,3471 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Organizador de Eventos Virtual</title>
+<link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#6c63ff" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Org. Eventos" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --primary: #6c63ff;
+    --primary-dark: #4e46e5;
+    --success: #22c55e;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --bg: #f8f7ff;
+    --card: #ffffff;
+    --text: #1e1b4b;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --radius: 12px;
+  }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* HEADER */
+  header { background: var(--primary); color: #fff; padding: 18px 24px; display: flex; align-items: center; gap: 12px; box-shadow: 0 2px 12px rgba(108,99,255,.35); }
+  header h1 { font-size: 1.35rem; font-weight: 700; flex: 1; }
+  header span.logo { font-size: 1.6rem; }
+
+  /* NAV */
+  nav { display: flex; gap: 4px; background: #fff; padding: 10px 16px; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; flex-wrap: wrap; }
+  nav button { padding: 8px 14px; border: 2px solid transparent; border-radius: 8px; font-size: .85rem; font-weight: 600; cursor: pointer; background: transparent; color: var(--muted); transition: all .2s; }
+  nav button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+  nav button:hover:not(.active) { background: #f0efff; color: var(--primary); border-color: var(--primary); }
+
+  main { max-width: 960px; margin: 28px auto; padding: 0 16px 60px; }
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* CARDS */
+  .card { background: var(--card); border-radius: var(--radius); padding: 24px; box-shadow: 0 1px 8px rgba(0,0,0,.07); margin-bottom: 20px; }
+  .card h2 { font-size: 1.1rem; margin-bottom: 16px; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+
+  /* STATS */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .stat { background: var(--card); border-radius: var(--radius); padding: 18px; text-align: center; box-shadow: 0 1px 6px rgba(0,0,0,.06); }
+  .stat .num { font-size: 2rem; font-weight: 700; color: var(--primary); }
+  .stat .lbl { font-size: .8rem; color: var(--muted); margin-top: 4px; }
+
+  /* FORMS */
+  .form-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .form-row input, .form-row select, .form-row textarea { flex: 1; min-width: 140px; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 8px; font-size: .92rem; outline: none; transition: border .2s; font-family: inherit; }
+  .form-row input:focus, .form-row select:focus { border-color: var(--primary); }
+  button.btn { padding: 10px 22px; background: var(--primary); color: #fff; border: none; border-radius: 8px; font-size: .92rem; font-weight: 600; cursor: pointer; transition: background .2s; }
+  button.btn:hover { background: var(--primary-dark); }
+  button.btn-sm { padding: 5px 12px; font-size: .8rem; }
+  button.btn-danger { background: var(--danger); }
+  button.btn-danger:hover { background: #b91c1c; }
+  button.btn-success { background: var(--success); }
+  button.btn-success:hover { background: #15803d; }
+  button.btn-warning { background: var(--warning); color: #fff; }
+  button.btn-warning:hover { background: #d97706; }
+  button.btn-outline { background: transparent; color: var(--primary); border: 1.5px solid var(--primary); }
+  button.btn-outline:hover { background: #f0efff; }
+
+  /* TABLE */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  th { background: #f0efff; color: var(--primary); font-weight: 700; padding: 10px 12px; text-align: left; }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #fafafe; }
+
+  /* BADGE */
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: .78rem; font-weight: 600; }
+  .badge-yes  { background: #dcfce7; color: #16a34a; }
+  .badge-no   { background: #fee2e2; color: #dc2626; }
+  .badge-pend { background: #fef9c3; color: #ca8a04; }
+  .badge-high { background: #fee2e2; color: #dc2626; }
+  .badge-med  { background: #fef9c3; color: #ca8a04; }
+  .badge-low  { background: #dbeafe; color: #2563eb; }
+
+  /* PROGRESS BAR */
+  .progress-wrap { background: #e5e7eb; border-radius: 99px; height: 10px; margin: 8px 0; overflow: hidden; }
+  .progress-bar  { height: 100%; border-radius: 99px; background: var(--primary); transition: width .5s; }
+
+  /* AGENDA TIMELINE */
+  .timeline { position: relative; padding-left: 28px; }
+  .timeline::before { content: ''; position: absolute; left: 10px; top: 0; bottom: 0; width: 2px; background: var(--border); }
+  .tl-item { position: relative; margin-bottom: 18px; }
+  .tl-dot { position: absolute; left: -22px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: var(--primary); border: 2px solid #fff; box-shadow: 0 0 0 2px var(--primary); }
+  .tl-time { font-size: .78rem; color: var(--muted); font-weight: 600; margin-bottom: 2px; }
+  .tl-card { background: #f8f7ff; border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; }
+  .tl-title { font-weight: 600; font-size: .95rem; }
+  .tl-desc { font-size: .83rem; color: var(--muted); margin-top: 3px; }
+  .tl-actions { margin-top: 8px; display: flex; gap: 6px; }
+
+  /* BUDGET */
+  .budget-summary { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+  .budget-box { flex: 1; min-width: 140px; border-radius: 10px; padding: 14px 18px; }
+  .budget-box.total  { background: #ede9fe; }
+  .budget-box.spent  { background: #fee2e2; }
+  .budget-box.remain { background: #dcfce7; }
+  .budget-box .bnum { font-size: 1.5rem; font-weight: 700; }
+  .budget-box .blbl { font-size: .78rem; color: var(--muted); }
+
+  /* TABLES (mesas) */
+  .tables-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+  .table-card { background: var(--card); border: 2px solid var(--border); border-radius: var(--radius); padding: 18px; box-shadow: 0 1px 6px rgba(0,0,0,.06); transition: border-color .2s; }
+  .table-card:hover { border-color: var(--primary); }
+  .table-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .table-card-name { font-weight: 700; font-size: 1rem; color: var(--primary); }
+  .table-capacity { font-size: .8rem; color: var(--muted); }
+  .table-seats { display: flex; flex-wrap: wrap; gap: 6px; min-height: 32px; margin: 10px 0; }
+  .seat-chip { background: #ede9fe; color: var(--primary); border-radius: 20px; padding: 3px 10px; font-size: .78rem; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+  .seat-chip button { background: none; border: none; color: var(--danger); cursor: pointer; font-size: .9rem; line-height: 1; padding: 0; }
+  .table-fill-bar { height: 6px; background: #e5e7eb; border-radius: 99px; overflow: hidden; margin-top: 8px; }
+  .table-fill-inner { height: 100%; border-radius: 99px; background: var(--success); transition: width .4s; }
+
+  /* TASKS */
+  .task-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .task-item:last-child { border-bottom: none; }
+  .task-item input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer; flex-shrink: 0; }
+  .task-text { flex: 1; font-size: .95rem; }
+  .task-text.done { text-decoration: line-through; color: var(--muted); }
+  .task-actions { display: flex; align-items: center; gap: 8px; }
+
+  /* GALLERY */
+  .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .gallery-item { position: relative; border-radius: 10px; overflow: hidden; cursor: pointer; box-shadow: 0 1px 6px rgba(0,0,0,.1); aspect-ratio: 1; }
+  .gallery-item img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .25s; }
+  .gallery-item:hover img { transform: scale(1.05); }
+  .gallery-item .del-photo { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,.55); color: #fff; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-size: .85rem; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity .2s; }
+  .gallery-item:hover .del-photo { opacity: 1; }
+  .gallery-caption { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,.5); color: #fff; font-size: .72rem; padding: 4px 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 100; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal-box { background: #fff; border-radius: var(--radius); max-width: 700px; width: 94vw; padding: 24px; position: relative; max-height: 90vh; overflow-y: auto; }
+  .modal-box img { width: 100%; border-radius: 8px; max-height: 60vh; object-fit: contain; }
+  .modal-close { position: absolute; top: 14px; right: 14px; background: var(--border); border: none; border-radius: 50%; width: 30px; height: 30px; font-size: 1.1rem; cursor: pointer; }
+
+  .empty { text-align: center; color: var(--muted); padding: 30px; font-size: .95rem; }
+  .action-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+
+  /* TEMPLATE BUTTONS */
+  .tmpl-btn { padding: 8px 16px; border: 2px solid var(--border); border-radius: 8px; font-size: .88rem; font-weight: 600; cursor: pointer; background: #fff; color: var(--muted); transition: all .2s; }
+  .tmpl-btn.active { border-color: var(--primary); background: #ede9fe; color: var(--primary); }
+  .tmpl-btn:hover:not(.active) { border-color: var(--primary); color: var(--primary); }
+
+  /* TEMPLATE ACTIVITY ROWS */
+  .tmpl-row { display: flex; align-items: center; gap: 12px; padding: 9px 12px; border-radius: 8px; transition: background .15s; cursor: pointer; border: 1px solid transparent; margin-bottom: 4px; }
+  .tmpl-row:hover { background: #f5f3ff; }
+  .tmpl-row.checked { background: #ede9fe; border-color: #c4b5fd; }
+  .tmpl-row input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer; flex-shrink: 0; }
+  .tmpl-row .tmpl-icon { font-size: 1.15rem; flex-shrink: 0; }
+  .tmpl-row .tmpl-name { flex: 1; font-size: .92rem; font-weight: 500; }
+  .tmpl-row input[type=time] { width: 120px; padding: 6px 10px; border: 1.5px solid var(--border); border-radius: 8px; font-size: .88rem; outline: none; flex-shrink: 0; }
+  .tmpl-row input[type=time]:focus { border-color: var(--primary); }
+
+  @media(max-width:600px){ .form-row { flex-direction: column; } .gallery-grid { grid-template-columns: repeat(2, 1fr); } }
+
+  /* MUSIC */
+  .music-moments-nav { display: flex; gap: 6px; flex-wrap: wrap; }
+  .moment-btn { padding: 7px 13px; border: 2px solid var(--border); border-radius: 8px; font-size: .82rem; font-weight: 600; cursor: pointer; background: #fff; color: var(--muted); transition: all .2s; position: relative; }
+  .moment-btn.active { border-color: var(--primary); background: #ede9fe; color: var(--primary); }
+  .moment-btn:hover:not(.active) { border-color: var(--primary); color: var(--primary); }
+  .moment-btn .mcnt { display: inline-block; background: var(--primary); color: #fff; border-radius: 99px; font-size: .68rem; padding: 1px 6px; margin-left: 4px; vertical-align: middle; }
+  .moment-btn.active .mcnt { background: var(--primary-dark); }
+  .song-row { display: flex; align-items: flex-start; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--border); }
+  .song-row:last-child { border-bottom: none; }
+  .song-num { font-size: .78rem; color: var(--muted); font-weight: 700; min-width: 22px; padding-top: 2px; }
+  .song-info { flex: 1; }
+  .song-title-text { font-weight: 600; font-size: .95rem; }
+  .song-artist-text { font-size: .82rem; color: var(--muted); margin-top: 1px; }
+  .song-notes-text { font-size: .78rem; color: #a78bfa; margin-top: 3px; font-style: italic; }
+
+  /* GIFTS */
+  .gift-method-card { border: 2px solid var(--border); border-radius: var(--radius); overflow: hidden; transition: border-color .2s; }
+  .gift-method-card.enabled { border-color: var(--primary); }
+  .gift-method-header { display: flex; align-items: center; gap: 10px; padding: 14px 16px; background: #f8f7ff; }
+  .gift-method-icon { font-size: 1.4rem; }
+  .gift-method-name { flex: 1; font-weight: 700; font-size: .95rem; }
+  .gift-method-body { padding: 16px; display: none; }
+  .gift-method-body.open { display: block; }
+  .gift-toggle { position: relative; display: inline-block; width: 42px; height: 24px; cursor: pointer; }
+  .gift-toggle input { opacity: 0; width: 0; height: 0; }
+  .gift-toggle span { position: absolute; inset: 0; background: #d1d5db; border-radius: 99px; transition: .3s; }
+  .gift-toggle span::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .3s; }
+  .gift-toggle input:checked + span { background: var(--primary); }
+  .gift-toggle input:checked + span::before { transform: translateX(18px); }
+  .gift-preview-box { background: linear-gradient(135deg,#ede9fe,#dbeafe); border-radius: 12px; padding: 20px 24px; border: 1px solid #c4b5fd; }
+  .gift-preview-box h3 { font-size: 1.1rem; margin-bottom: 4px; color: var(--primary); }
+  .gift-preview-box .gp-min { font-size: .85rem; color: var(--muted); margin-bottom: 14px; }
+  .gift-method-block { background: #fff; border-radius: 8px; padding: 12px 16px; margin-bottom: 10px; border: 1px solid var(--border); }
+  .gift-method-block:last-child { margin-bottom: 0; }
+  .gift-method-block .gm-title { font-weight: 700; font-size: .9rem; margin-bottom: 6px; }
+  .gift-method-block .gm-row { font-size: .88rem; margin-bottom: 3px; }
+  .gift-method-block .gm-alias { font-size: 1rem; font-weight: 700; color: var(--primary); letter-spacing: .5px; }
+
+  /* PRINT */
+  @media print {
+    header, nav, .no-print, button, input, select, textarea { display: none !important; }
+    body { background: #fff; color: #000; }
+    .section { display: none !important; }
+    #tab-invitations { display: block !important; }
+    main { max-width: 100%; margin: 0; padding: 0; }
+    .card { box-shadow: none; border: none !important; }
+    .inv-print-area { display: block !important; }
+    .no-print-inv { display: none !important; }
+
+    /* Tables print */
+    body.printing-tables .section { display: none !important; }
+    body.printing-tables #tab-tables { display: block !important; }
+    body.printing-tables .tables-grid { display: none !important; }
+    body.printing-tables #tables-print-view { display: block !important; }
+    .tpv-table-block { page-break-inside: avoid; border: 2px solid #6c63ff; border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; }
+    .tpv-table-name { font-size: 1.2rem; font-weight: 800; color: #1e1b4b; margin-bottom: 4px; }
+    .tpv-table-meta { font-size: .85rem; color: #6b7280; margin-bottom: 10px; }
+    .tpv-guest-list { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(2,1fr); gap: 4px 16px; }
+    .tpv-guest-list li { font-size: .92rem; padding: 3px 0; border-bottom: 1px solid #e5e7eb; }
+    .tpv-guest-list li::before { content: '👤 '; }
+  }
+
+  /* ADMIN */
+  .admin-modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:1100; align-items:center; justify-content:center; }
+  .admin-modal-overlay.open { display:flex; }
+  .admin-login-box { background:#fff; border-radius:16px; padding:36px 32px; width:340px; box-shadow:0 8px 40px rgba(0,0,0,.25); text-align:center; }
+  .admin-login-box h2 { font-size:1.2rem; color:var(--primary); margin-bottom:6px; }
+  .admin-login-box p  { font-size:.85rem; color:var(--muted); margin-bottom:20px; }
+  .admin-login-box input { width:100%; padding:10px 14px; border:1.5px solid var(--border); border-radius:8px; font-size:.95rem; outline:none; margin-bottom:12px; }
+  .admin-login-box input:focus { border-color:var(--primary); }
+  .admin-badge { background:#fef08a; color:#854d0e; font-size:.72rem; font-weight:800; padding:3px 10px; border-radius:20px; letter-spacing:.5px; margin-left:6px; }
+  .admin-banner { padding:10px 20px; font-size:.9rem; font-weight:600; text-align:center; display:none; }
+  .admin-section { margin-bottom:28px; }
+  .admin-section h3 { font-size:1rem; font-weight:700; color:var(--primary); border-bottom:2px solid #ede9fe; padding-bottom:8px; margin-bottom:14px; }
+  .admin-toggle-row { display:flex; align-items:center; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--border); }
+  .admin-toggle-row:last-child { border-bottom:none; }
+  .admin-toggle-label { font-size:.92rem; font-weight:500; }
+  .toggle-switch { position:relative; display:inline-block; width:44px; height:24px; cursor:pointer; }
+  .toggle-switch input { opacity:0; width:0; height:0; }
+  .toggle-slider { position:absolute; inset:0; background:#d1d5db; border-radius:99px; transition:.3s; }
+  .toggle-slider::before { content:''; position:absolute; width:18px; height:18px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.3s; }
+  .toggle-switch input:checked + .toggle-slider { background:var(--primary); }
+  .toggle-switch input:checked + .toggle-slider::before { transform:translateX(20px); }
+  .admin-stat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; margin-bottom:16px; }
+  .admin-stat { background:#f8f7ff; border-radius:10px; padding:14px; text-align:center; border:1px solid #ede9fe; }
+  .admin-stat .as-num { font-size:1.8rem; font-weight:800; color:var(--primary); }
+  .admin-stat .as-lbl { font-size:.75rem; color:var(--muted); margin-top:2px; }
+  .admin-bar-chart { display:flex; gap:8px; align-items:flex-end; height:80px; margin:12px 0; }
+  .admin-bar-col { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .admin-bar { width:100%; border-radius:6px 6px 0 0; transition:height .4s; min-height:4px; }
+  .admin-bar-lbl { font-size:.7rem; color:var(--muted); text-align:center; }
+  .admin-users-table { width:100%; border-collapse:collapse; font-size:.85rem; }
+  .admin-users-table th { background:#f0efff; color:var(--primary); font-weight:700; padding:8px 10px; text-align:left; }
+  .admin-users-table td { padding:8px 10px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  .admin-users-table tr:last-child td { border-bottom:none; }
+  .status-badge { padding:2px 9px; border-radius:20px; font-size:.75rem; font-weight:700; }
+  .status-trial  { background:#fef9c3; color:#ca8a04; }
+  .status-active { background:#dcfce7; color:#16a34a; }
+  .status-expired{ background:#fee2e2; color:#dc2626; }
+  .log-entry { font-size:.8rem; color:var(--muted); padding:4px 0; border-bottom:1px solid var(--border); }
+
+  /* INVITATION CARD */
+  .inv-card { background: linear-gradient(160deg,#fdf6ff 0%,#f0efff 60%,#e8f4ff 100%); border: 2px solid #d8b4fe; border-radius: 20px; padding: 36px 32px; max-width: 520px; margin: 0 auto; box-shadow: 0 8px 32px rgba(108,99,255,.12); text-align: center; position: relative; overflow: hidden; }
+  .inv-card::before { content: ''; position: absolute; top: -40px; right: -40px; width: 140px; height: 140px; background: radial-gradient(circle,rgba(216,180,254,.35),transparent 70%); border-radius: 50%; }
+  .inv-card::after  { content: ''; position: absolute; bottom: -30px; left: -30px; width: 110px; height: 110px; background: radial-gradient(circle,rgba(147,197,253,.3),transparent 70%); border-radius: 50%; }
+  .inv-photo-wrap { margin-bottom: 18px; }
+  .inv-photo { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 4px solid #d8b4fe; box-shadow: 0 4px 16px rgba(108,99,255,.2); }
+  .inv-photo-placeholder { width: 100px; height: 100px; border-radius: 50%; background: #ede9fe; display: inline-flex; align-items: center; justify-content: center; font-size: 2.2rem; border: 4px solid #d8b4fe; }
+  .inv-event-title { font-size: 1.5rem; font-weight: 800; color: var(--primary); margin-bottom: 6px; letter-spacing: .5px; }
+  .inv-divider { width: 60px; height: 3px; background: linear-gradient(90deg,#a78bfa,#60a5fa); border-radius: 99px; margin: 10px auto; }
+  .inv-message { font-size: .95rem; color: var(--text); line-height: 1.6; margin: 14px 0; white-space: pre-wrap; }
+  .inv-guest-name { font-size: 1.2rem; font-weight: 700; color: var(--primary-dark); margin: 16px 0 4px; }
+  .inv-section { background: rgba(255,255,255,.7); border-radius: 12px; padding: 12px 16px; margin: 10px 0; text-align: left; border: 1px solid rgba(216,180,254,.4); }
+  .inv-section-title { font-size: .75rem; font-weight: 700; color: #a78bfa; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+  .inv-row { font-size: .9rem; color: var(--text); margin-bottom: 3px; display: flex; align-items: flex-start; gap: 8px; }
+  .inv-row:last-child { margin-bottom: 0; }
+  .inv-footer { margin-top: 20px; font-size: .78rem; color: #a78bfa; font-style: italic; }
+  .inv-alias { font-weight: 700; color: var(--primary); font-size: 1rem; }
+
+  .inv-guest-selector { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
+  .inv-guest-selector select { flex: 1; min-width: 200px; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 8px; font-size: .92rem; outline: none; }
+  .inv-guest-selector select:focus { border-color: var(--primary); }
+  .inv-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 18px; }
+
+  /* COUNTDOWN */
+  .countdown-wrap { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; padding: 8px 0; }
+  .countdown-block { background: #ede9fe; border-radius: 12px; padding: 14px 20px; text-align: center; min-width: 72px; }
+  .countdown-num { font-size: 2.2rem; font-weight: 800; color: var(--primary); line-height: 1; }
+  .countdown-lbl { font-size: .72rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+  .countdown-done { text-align: center; font-size: 1.2rem; font-weight: 700; color: var(--success); padding: 12px; }
+
+  /* NOTES */
+  .notes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: 14px; }
+  .note-card { border-radius: 12px; padding: 16px; position: relative; box-shadow: 0 2px 8px rgba(0,0,0,.07); border: 1px solid rgba(0,0,0,.06); }
+  .note-card-title { font-weight: 700; font-size: .95rem; margin-bottom: 8px; color: var(--text); }
+  .note-card-text { font-size: .88rem; color: #374151; white-space: pre-wrap; line-height: 1.5; }
+  .note-card-date { font-size: .72rem; color: var(--muted); margin-top: 10px; }
+  .note-card-del { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,.1); border: none; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; font-size: .8rem; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity .2s; }
+  .note-card:hover .note-card-del { opacity: 1; }
+  .color-dot-label { cursor: pointer; }
+  .color-dot-label input { display: none; }
+  .color-dot-label span { display: inline-block; width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; transition: border-color .2s; }
+  .color-dot-label input:checked + span { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(108,99,255,.3); }
+
+  /* CHECK-IN */
+  .checkin-item { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .checkin-item:last-child { border-bottom: none; }
+  .checkin-info { flex: 1; }
+  .checkin-name { font-weight: 600; font-size: 1rem; }
+  .checkin-table { font-size: .8rem; color: var(--muted); margin-top: 2px; }
+  .checkin-btn { padding: 8px 18px; border: none; border-radius: 8px; font-size: .9rem; font-weight: 700; cursor: pointer; transition: all .2s; min-width: 110px; }
+  .checkin-btn.arrived  { background: #dcfce7; color: #16a34a; }
+  .checkin-btn.absent   { background: #f3f4f6; color: var(--muted); }
+  .checkin-btn:hover { transform: scale(1.04); }
+
+  /* PROVIDERS */
+  .provider-card { background:var(--card); border:2px solid var(--border); border-radius:var(--radius); padding:18px; box-shadow:0 1px 6px rgba(0,0,0,.06); transition:border-color .2s; position:relative; }
+  .provider-card:hover { border-color:var(--primary); }
+  .provider-rubro { display:inline-block; background:#ede9fe; color:var(--primary); font-size:.72rem; font-weight:700; padding:2px 10px; border-radius:20px; margin-bottom:8px; }
+  .provider-name { font-size:1rem; font-weight:700; color:var(--text); margin-bottom:4px; }
+  .provider-location { font-size:.82rem; color:var(--muted); margin-bottom:6px; }
+  .provider-contact { font-size:.85rem; color:var(--text); margin-bottom:3px; }
+  .provider-contact a { color:var(--primary); text-decoration:none; }
+  .provider-contact a:hover { text-decoration:underline; }
+  .provider-rating { font-size:.85rem; margin:6px 0; }
+  .provider-notes { font-size:.82rem; color:var(--muted); margin-top:6px; font-style:italic; border-top:1px solid var(--border); padding-top:6px; }
+  .provider-del { position:absolute; top:10px; right:10px; background:none; border:none; color:var(--danger); cursor:pointer; font-size:1rem; opacity:.5; transition:opacity .2s; }
+  .provider-del:hover { opacity:1; }
+
+  /* ===== WELCOME SCREEN ===== */
+  #welcome-screen {
+    position:fixed; inset:0; z-index:999;
+    background-color: #1e1b4b;
+    background-image: linear-gradient(135deg,rgba(30,27,75,.82) 0%,rgba(76,29,149,.78) 60%,rgba(109,40,217,.72) 100%), var(--cover-img, url('https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=1400&q=80&fit=crop'));
+    background-size: cover;
+    background-position: center;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; overflow-y:auto; padding:40px 16px;
+  }
+  .welcome-logo { font-size:3rem; margin-bottom:6px; }
+  .welcome-title { font-size:1.8rem; font-weight:800; color:#fff; text-align:center; }
+  .welcome-subtitle { font-size:1rem; color:#c4b5fd; margin:6px 0 32px; text-align:center; }
+  .plans-row { display:flex; gap:20px; flex-wrap:wrap; justify-content:center; max-width:720px; width:100%; }
+  .plan-card { background:rgba(255,255,255,.08); backdrop-filter:blur(10px); border:2px solid rgba(255,255,255,.15); border-radius:18px; padding:28px 24px; width:300px; position:relative; transition:transform .2s, border-color .2s; cursor:pointer; }
+  .plan-card:hover { transform:translateY(-4px); border-color:#a78bfa; }
+  .plan-card.featured { border-color:#f59e0b; box-shadow:0 0 32px rgba(245,158,11,.25); }
+  .plan-badge { position:absolute; top:-13px; left:50%; transform:translateX(-50%); padding:4px 16px; border-radius:20px; font-size:.75rem; font-weight:700; white-space:nowrap; }
+  .plan-badge.free { background:#22c55e; color:#fff; }
+  .plan-badge.popular { background:#f59e0b; color:#fff; }
+  .plan-card h3 { font-size:1.1rem; font-weight:700; color:#fff; margin:12px 0 4px; }
+  .plan-price { font-size:2rem; font-weight:800; color:#fff; }
+  .plan-price span { font-size:.9rem; font-weight:400; color:#c4b5fd; }
+  .plan-desc { font-size:.82rem; color:#c4b5fd; margin:4px 0 16px; }
+  .plan-features { list-style:none; margin:0 0 20px; padding:0; }
+  .plan-features li { font-size:.88rem; color:#e9d5ff; margin-bottom:6px; }
+  .btn-plan { width:100%; padding:12px; border:none; border-radius:10px; font-weight:700; font-size:.95rem; cursor:pointer; transition:background .2s; }
+  .btn-plan.free-btn { background:#22c55e; color:#fff; }
+  .btn-plan.free-btn:hover { background:#15803d; }
+  .btn-plan.pro-btn { background:#f59e0b; color:#fff; }
+  .btn-plan.pro-btn:hover { background:#d97706; }
+
+  /* ===== AUTH FORMS ===== */
+  #auth-form-wrap { background:rgba(255,255,255,.1); backdrop-filter:blur(12px); border:1.5px solid rgba(255,255,255,.2); border-radius:18px; padding:32px 28px; width:100%; max-width:400px; margin-top:8px; }
+  #auth-form-wrap h3 { color:#fff; font-size:1.15rem; font-weight:700; margin-bottom:4px; }
+  .auth-plan-badge { display:inline-block; padding:3px 12px; border-radius:20px; font-size:.78rem; font-weight:700; margin-bottom:16px; }
+  .auth-plan-badge.free { background:#22c55e; color:#fff; }
+  .auth-plan-badge.pro { background:#f59e0b; color:#fff; }
+  #auth-form-wrap input { width:100%; padding:11px 14px; border:1.5px solid rgba(255,255,255,.25); border-radius:8px; background:rgba(255,255,255,.1); color:#fff; font-size:.92rem; outline:none; margin-bottom:12px; font-family:inherit; }
+  #auth-form-wrap input::placeholder { color:#c4b5fd; }
+  #auth-form-wrap input:focus { border-color:#a78bfa; }
+  .btn-auth { width:100%; padding:13px; border:none; border-radius:10px; font-size:1rem; font-weight:700; cursor:pointer; background:#6c63ff; color:#fff; transition:background .2s; margin-top:4px; }
+  .btn-auth:hover { background:#4e46e5; }
+  .auth-error { color:#fca5a5; font-size:.85rem; margin-top:8px; min-height:20px; }
+  .auth-switch { color:#c4b5fd; font-size:.85rem; margin-top:14px; text-align:center; }
+  .auth-switch a { color:#a78bfa; cursor:pointer; text-decoration:underline; }
+  .auth-back { color:#c4b5fd; font-size:.82rem; cursor:pointer; margin-bottom:12px; display:inline-block; }
+  .auth-back:hover { color:#fff; }
+
+  /* ===== USER INFO BAR ===== */
+  #user-info-bar { background:linear-gradient(90deg,#4e46e5,#7c3aed); color:#fff; padding:8px 24px; font-size:.85rem; display:none; align-items:center; gap:12px; flex-wrap:wrap; }
+  #user-info-bar .uib-name { font-weight:700; }
+  #user-info-bar .uib-plan { background:rgba(255,255,255,.2); padding:2px 10px; border-radius:20px; font-size:.78rem; }
+  #user-info-bar .uib-trial { color:#fde68a; font-size:.82rem; }
+  #user-info-bar .uib-logout { margin-left:auto; background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.3); color:#fff; padding:4px 14px; border-radius:8px; font-size:.8rem; cursor:pointer; transition:background .2s; }
+  #user-info-bar .uib-logout:hover { background:rgba(255,255,255,.3); }
+</style>
+</head>
+<body>
+
+<!-- ===== WELCOME SCREEN ===== -->
+<div id="welcome-screen">
+  <div class="welcome-logo">🎉</div>
+  <div class="welcome-title">Organizador de Eventos Virtual</div>
+  <div class="welcome-subtitle">Organizá tu evento perfecto</div>
+
+  <div class="plans-row" id="plans-row">
+    <!-- Card Mi Evento -->
+    <div class="plan-card" id="card-mievento">
+      <span class="plan-badge free">GRATIS 1 MES</span>
+      <h3>Mi Evento</h3>
+      <div class="plan-price">$0 <span>primer mes</span></div>
+      <div class="plan-desc">Para quienes organizan su propio evento</div>
+      <ul class="plan-features">
+        <li>✅ Lista de invitados y RSVP</li>
+        <li>✅ Presupuesto y gastos</li>
+        <li>✅ Agenda y cronograma</li>
+        <li>✅ Mesas y distribución</li>
+        <li>✅ Galería de fotos</li>
+        <li>✅ Lista de música</li>
+        <li>✅ Invitaciones digitales</li>
+        <li>✅ Todos los módulos</li>
+      </ul>
+      <button class="btn-plan free-btn" onclick="selectPlan('mievento')">Empezar gratis</button>
+    </div>
+
+    <!-- Card Organizador -->
+    <div class="plan-card featured" id="card-organizador">
+      <span class="plan-badge popular">MÁS POPULAR</span>
+      <h3>Organizador de Eventos</h3>
+      <div class="plan-price">$30 <span>/ año</span></div>
+      <div class="plan-desc">Para profesionales que organizan múltiples eventos</div>
+      <ul class="plan-features">
+        <li>✅ Todo lo de Mi Evento</li>
+        <li>⭐ Más de 10 eventos simultáneos</li>
+        <li>⭐ Agenda independiente por evento</li>
+        <li>⭐ Gestión de invitados por evento</li>
+        <li>✅ Sin restricciones de tiempo</li>
+        <li>✅ Presupuesto por evento</li>
+        <li>✅ Sin interrupciones</li>
+        <li>⭐ Soporte prioritario</li>
+      </ul>
+      <button class="btn-plan pro-btn" onclick="selectPlan('organizador')">Suscribirme — $30/año</button>
+    </div>
+  </div>
+
+  <!-- Auth Form Wrap -->
+  <div id="auth-form-wrap" style="display:none;">
+    <span class="auth-back" onclick="showPlans()">← Volver a los planes</span>
+    <div id="auth-register-section">
+      <h3>Crear cuenta</h3>
+      <div id="auth-selected-badge"></div>
+      <input type="text" id="reg-name" placeholder="Nombre completo" />
+      <input type="email" id="reg-email" placeholder="Email" />
+      <input type="password" id="reg-pwd" placeholder="Contraseña (mínimo 6 caracteres)" />
+      <input type="password" id="reg-pwd2" placeholder="Confirmar contraseña" />
+      <button class="btn-auth" onclick="doRegister()">Crear cuenta</button>
+      <div class="auth-error" id="reg-error"></div>
+      <div class="auth-switch">¿Ya tenés cuenta? <a onclick="showLoginForm()">Iniciar sesión</a></div>
+    </div>
+    <div id="auth-login-section" style="display:none;">
+      <h3>Iniciar sesión</h3>
+      <input type="email" id="login-email" placeholder="Email" />
+      <input type="password" id="login-pwd" placeholder="Contraseña" />
+      <button class="btn-auth" onclick="doLogin()">Ingresar</button>
+      <div class="auth-error" id="login-error"></div>
+      <div class="auth-switch">¿No tenés cuenta? <a onclick="showRegisterForm()">Registrarse</a></div>
+    </div>
+  </div>
+
+  <div style="margin-top:20px;text-align:center;">
+    <a onclick="showLoginForm()" style="color:#c4b5fd;font-size:.85rem;cursor:pointer;text-decoration:underline;">Ya tengo cuenta → Iniciar sesión</a>
+    <span style="color:#6b5fa0;margin:0 10px;">|</span>
+    <a onclick="openAdminLogin()" style="color:#6b5fa0;font-size:.78rem;cursor:pointer;text-decoration:underline;">⚙ Administrador</a>
+  </div>
+</div>
+
+<!-- ===== USER INFO BAR ===== -->
+<div id="user-info-bar">
+  <span class="uib-name" id="uib-name"></span>
+  <span class="uib-plan" id="uib-plan"></span>
+  <span class="uib-trial" id="uib-trial"></span>
+  <button class="uib-logout" onclick="logoutUser()">Cerrar sesión</button>
+</div>
+
+<header>
+  <span class="logo">🎉</span>
+  <h1 id="event-title-display">Mi Evento</h1>
+  <span style="font-size:.75rem;background:rgba(255,255,255,.2);padding:3px 10px;border-radius:20px;margin-right:8px;letter-spacing:.5px;">Organizador de Eventos Virtual</span>
+  <span id="admin-header-badge" style="display:none;" class="admin-badge">⚙ ADMIN</span>
+  <button class="btn btn-outline no-print" style="color:#fff;border-color:#fff;font-size:.82rem;" onclick="editTitle()">Renombrar</button>
+  <button class="btn btn-outline no-print" style="color:#fff;border-color:#fff;font-size:.82rem;margin-left:6px;" onclick="exportJSON()">⬇ Backup</button>
+  <label class="btn btn-outline no-print" style="color:#fff;border-color:#fff;font-size:.82rem;margin-left:6px;cursor:pointer;">
+    📂 Importar <input type="file" accept=".json" onchange="importJSON(this)" style="display:none;" />
+  </label>
+  <button class="btn btn-outline no-print" style="color:#fff;border-color:#fff;font-size:.82rem;margin-left:6px;" onclick="printSummary()">🖨 Imprimir</button>
+</header>
+
+<!-- ADMIN BANNER -->
+<div id="admin-banner" class="admin-banner no-print"></div>
+
+<nav>
+  <button class="active" onclick="showTab('dashboard', this)">📊 Resumen</button>
+  <button onclick="showTab('guests', this)">👥 Invitados</button>
+  <button onclick="showTab('budget', this)">💰 Presupuesto</button>
+  <button onclick="showTab('agenda', this)">📅 Agenda</button>
+  <button onclick="showTab('tables', this)">🪑 Mesas</button>
+  <button onclick="showTab('tasks', this)">✅ Tareas</button>
+  <button onclick="showTab('gallery', this)">🖼 Galería</button>
+  <button onclick="showTab('music', this)">🎵 Música</button>
+  <button onclick="showTab('gifts', this)">🎁 Regalos</button>
+  <button onclick="showTab('invitations', this)">💌 Invitaciones</button>
+  <button onclick="showTab('notes', this)">📝 Notas</button>
+  <button onclick="showTab('checkin', this)">✔ Check-in</button>
+  <button onclick="showTab('providers', this)">🏢 Prestadores</button>
+  <button id="nav-admin-btn" onclick="showTab('admin', this)" style="display:none;background:#fef08a;color:#854d0e;border-color:#fde68a;">⚙ Admin</button>
+</nav>
+
+<main>
+
+<!-- DASHBOARD -->
+<div id="tab-dashboard" class="section active">
+  <div class="stats" id="stats-row"></div>
+
+  <!-- COUNTDOWN -->
+  <div class="card" id="countdown-card">
+    <h2>⏳ Cuenta regresiva</h2>
+    <div id="countdown-display"></div>
+  </div>
+
+  <div class="card">
+    <h2>📊 Confirmaciones</h2>
+    <div style="display:flex;justify-content:space-between;font-size:.85rem;color:var(--muted);margin-bottom:4px;"><span>Confirmados</span><span id="rsvp-pct">0%</span></div>
+    <div class="progress-wrap"><div class="progress-bar" id="rsvp-bar" style="width:0%"></div></div>
+  </div>
+  <div class="card">
+    <h2>💰 Presupuesto</h2>
+    <div style="display:flex;justify-content:space-between;font-size:.85rem;color:var(--muted);margin-bottom:4px;"><span>Gastado</span><span id="budget-pct">0%</span></div>
+    <div class="progress-wrap"><div class="progress-bar" id="budget-bar" style="width:0%;background:var(--warning)"></div></div>
+  </div>
+  <div class="card">
+    <h2>✅ Tareas</h2>
+    <div style="display:flex;justify-content:space-between;font-size:.85rem;color:var(--muted);margin-bottom:4px;"><span>Completadas</span><span id="tasks-pct">0%</span></div>
+    <div class="progress-wrap"><div class="progress-bar" id="tasks-bar" style="width:0%;background:var(--success)"></div></div>
+  </div>
+  <div class="card">
+    <h2>📅 Próximas actividades</h2>
+    <div id="upcoming-list"><p class="empty">No hay actividades en la agenda aún.</p></div>
+  </div>
+</div>
+
+<!-- GUESTS -->
+<div id="tab-guests" class="section">
+  <div class="card">
+    <h2>➕ Agregar invitado</h2>
+    <div class="form-row">
+      <input id="g-name" placeholder="Nombre" />
+      <input id="g-email" placeholder="Email (opcional)" />
+      <input id="g-phone" placeholder="Teléfono (opcional)" />
+    </div>
+    <div class="form-row">
+      <select id="g-rsvp">
+        <option value="pending">Pendiente</option>
+        <option value="yes">Confirmado ✅</option>
+        <option value="no">No asistirá ❌</option>
+      </select>
+      <input id="g-note" placeholder="Nota (alergia, etc.)" />
+      <button class="btn" onclick="addGuest()">Agregar</button>
+      <button class="btn btn-outline no-print" onclick="importFromContacts()" id="btn-contacts" title="Importar desde contactos del celular">📱 Contactos</button>
+    </div>
+    <div id="contacts-msg" style="font-size:.82rem;color:var(--muted);margin-top:6px;display:none;"></div>
+  </div>
+
+  <div class="card">
+    <h2>👥 Lista de invitados</h2>
+    <div class="action-bar no-print">
+      <input id="g-search" placeholder="Buscar..." oninput="renderGuests()" style="flex:1;min-width:140px;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.9rem;outline:none;" />
+      <select id="g-filter" onchange="renderGuests()" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.9rem;outline:none;">
+        <option value="all">Todos</option>
+        <option value="yes">Confirmados</option>
+        <option value="no">No asisten</option>
+        <option value="pending">Pendientes</option>
+      </select>
+      <button class="btn btn-success btn-sm" onclick="exportGuestsCSV()">⬇ Exportar CSV</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Nombre</th><th>Contacto</th><th>Estado</th><th>Mesa</th><th>Nota</th><th class="no-print"></th></tr></thead>
+        <tbody id="guests-tbody"><tr><td colspan="7" class="empty">Sin invitados aún.</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- BUDGET -->
+<div id="tab-budget" class="section">
+  <div class="card">
+    <h2>🎯 Presupuesto total</h2>
+    <div class="form-row">
+      <input id="b-total" type="number" placeholder="Presupuesto total ($)" min="0" />
+      <button class="btn" onclick="setBudget()">Guardar</button>
+    </div>
+  </div>
+  <div class="budget-summary" id="budget-summary"></div>
+  <div class="card">
+    <h2>➕ Agregar gasto</h2>
+    <div class="form-row">
+      <input id="exp-name" placeholder="Descripción" />
+      <select id="exp-cat">
+        <option>Venue / Lugar</option><option>Catering / Comida</option><option>Decoración</option>
+        <option>Entretenimiento</option><option>Transporte</option><option>Fotografía</option><option>Otro</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <input id="exp-amount" type="number" placeholder="Monto ($)" min="0" />
+      <input id="exp-date" type="date" />
+      <button class="btn" onclick="addExpense()">Agregar</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2>📋 Gastos</h2>
+    <div class="action-bar no-print">
+      <button class="btn btn-success btn-sm" onclick="exportExpensesCSV()">⬇ Exportar CSV</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Descripción</th><th>Categoría</th><th>Fecha</th><th>Monto</th><th class="no-print"></th></tr></thead>
+        <tbody id="expenses-tbody"><tr><td colspan="5" class="empty">Sin gastos registrados.</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- AGENDA -->
+<div id="tab-agenda" class="section">
+
+  <!-- PLANTILLAS -->
+  <div class="card no-print">
+    <h2>🗂 Plantillas de cronograma</h2>
+    <p style="font-size:.85rem;color:var(--muted);margin-bottom:14px;">Seleccioná el tipo de evento, marcá las actividades que querés y asignales un horario.</p>
+    <div class="form-row" style="margin-bottom:16px;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;flex:1;">
+        <button class="tmpl-btn active" onclick="selectTemplate('quince',this)">🎀 Quinceañera</button>
+        <button class="tmpl-btn" onclick="selectTemplate('boda',this)">💍 Boda</button>
+        <button class="tmpl-btn" onclick="selectTemplate('cumple',this)">🎂 Cumpleaños</button>
+        <button class="tmpl-btn" onclick="selectTemplate('general',this)">🎉 General</button>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-sm btn-outline" onclick="selectAllTemplate(true)">Seleccionar todas</button>
+        <button class="btn btn-sm btn-outline" onclick="selectAllTemplate(false)">Deseleccionar</button>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <label style="font-size:.85rem;color:var(--muted);">Fecha del evento:</label>
+        <input type="date" id="tmpl-date" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;outline:none;" />
+      </div>
+    </div>
+    <div id="template-list"></div>
+    <div style="margin-top:14px;">
+      <button class="btn" onclick="addTemplateToAgenda()">➕ Agregar seleccionadas al cronograma</button>
+    </div>
+  </div>
+
+  <!-- AGREGAR MANUAL -->
+  <div class="card">
+    <h2>✏️ Agregar actividad manualmente</h2>
+    <div class="form-row">
+      <input id="ag-title" placeholder="Actividad" />
+      <input id="ag-date" type="date" />
+      <input id="ag-time" type="time" />
+    </div>
+    <div class="form-row">
+      <input id="ag-desc" placeholder="Descripción (opcional)" />
+      <input id="ag-location" placeholder="Lugar (opcional)" />
+      <button class="btn" onclick="addAgendaItem()">Agregar</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📅 Cronograma</h2>
+    <div class="timeline" id="agenda-list"><p class="empty">Sin actividades aún.</p></div>
+  </div>
+</div>
+
+<!-- TABLES -->
+<div id="tab-tables" class="section">
+  <div class="card no-print">
+    <h2>➕ Crear mesa</h2>
+    <div class="form-row">
+      <input id="tbl-name" placeholder="Nombre de la mesa (ej. Mesa 1, VIP)" />
+      <input id="tbl-cap" type="number" placeholder="Capacidad" min="1" max="50" />
+      <input id="tbl-location" placeholder="Ubicación (ej. Sector izquierdo, Junto al escenario)" />
+      <button class="btn" onclick="addTable()">Crear</button>
+    </div>
+  </div>
+  <div class="card no-print">
+    <h2>🪑 Asignar invitado a mesa</h2>
+    <div class="form-row">
+      <select id="assign-guest" style="flex:2"></select>
+      <select id="assign-table" style="flex:2"></select>
+      <button class="btn" onclick="assignGuestToTable()">Asignar</button>
+    </div>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+    <span id="tables-summary" style="font-size:.9rem;color:var(--muted);"></span>
+    <button class="btn btn-success no-print" onclick="printTables()">🖨 Imprimir distribución de mesas</button>
+  </div>
+  <div id="tables-grid" class="tables-grid"><p class="empty">No hay mesas creadas aún.</p></div>
+
+  <!-- PRINT-ONLY VIEW -->
+  <div id="tables-print-view" style="display:none;">
+    <div style="text-align:center;margin-bottom:24px;">
+      <h1 id="tpv-event-title" style="font-size:1.8rem;color:#1e1b4b;"></h1>
+      <p id="tpv-subtitle" style="font-size:1rem;color:#6b7280;margin-top:4px;">Distribución de mesas</p>
+    </div>
+    <div id="tpv-tables"></div>
+  </div>
+</div>
+
+<!-- TASKS -->
+<div id="tab-tasks" class="section">
+  <div class="card no-print">
+    <h2>➕ Nueva tarea</h2>
+    <div class="form-row">
+      <input id="task-text" placeholder="Descripción de la tarea" onkeydown="if(event.key==='Enter')addTask()" />
+      <select id="task-priority">
+        <option value="high">Alta</option>
+        <option value="med" selected>Media</option>
+        <option value="low">Baja</option>
+      </select>
+      <button class="btn" onclick="addTask()">Agregar</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2>✅ Lista de tareas</h2>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;" class="no-print">
+      <div style="display:flex;gap:8px;">
+        <select id="task-filter" onchange="renderTasks()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;outline:none;">
+          <option value="all">Todas</option>
+          <option value="pending">Pendientes</option>
+          <option value="done">Completadas</option>
+        </select>
+      </div>
+      <button class="btn btn-sm btn-danger" onclick="clearDoneTasks()">🗑 Eliminar completadas</button>
+    </div>
+    <div style="margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;font-size:.82rem;color:var(--muted);margin-bottom:4px;"><span>Progreso</span><span id="tasks-progress-lbl">0 / 0</span></div>
+      <div class="progress-wrap"><div class="progress-bar" id="tasks-progress-bar" style="width:0%;background:var(--success)"></div></div>
+    </div>
+    <div id="tasks-list"><p class="empty">Sin tareas aún.</p></div>
+  </div>
+</div>
+
+<!-- GALLERY -->
+<div id="tab-gallery" class="section">
+  <div class="card no-print">
+    <h2>📤 Subir fotos</h2>
+    <div class="form-row">
+      <input type="file" id="photo-input" accept="image/*" multiple style="flex:2;" />
+      <button class="btn" onclick="uploadPhotos()">Subir</button>
+    </div>
+    <p style="font-size:.8rem;color:var(--muted);margin-top:4px;">Las fotos se guardan en el navegador. Evita imágenes muy pesadas.</p>
+  </div>
+  <div class="card">
+    <h2>🖼 Galería <span id="gallery-count" style="font-size:.85rem;font-weight:400;color:var(--muted)"></span></h2>
+    <div class="gallery-grid" id="gallery-grid"><p class="empty">Sin fotos aún.</p></div>
+  </div>
+</div>
+
+<!-- MUSIC -->
+<div id="tab-music" class="section">
+  <div class="card no-print">
+    <h2>🎵 Lista de música para el DJ / sonidista</h2>
+    <p style="font-size:.85rem;color:var(--muted);margin-bottom:14px;">Organizá las canciones por momento del evento y exportá la lista completa para tu DJ.</p>
+    <div class="music-moments-nav" id="music-moments-nav"></div>
+  </div>
+  <div class="card">
+    <h2 id="music-moment-title">🌸 Recepción</h2>
+    <div class="form-row no-print">
+      <input id="song-title" placeholder="Nombre de la canción" onkeydown="if(event.key==='Enter')addSong()" />
+      <input id="song-artist" placeholder="Artista / Banda" />
+    </div>
+    <div class="form-row no-print">
+      <input id="song-link" placeholder="🔗 Link (YouTube, Spotify, etc.) — pegar acá" />
+      <input id="song-notes" placeholder="Notas para el DJ (opcional)" />
+      <button class="btn" onclick="addSong()">➕ Agregar</button>
+    </div>
+    <div id="music-song-list"><p class="empty">Sin canciones para este momento aún.</p></div>
+  </div>
+  <div class="card no-print">
+    <h2>📤 Exportar</h2>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+      <button class="btn btn-success" onclick="exportMusicCSV()">⬇ Exportar lista completa para DJ (CSV)</button>
+      <span id="music-total-count" style="font-size:.85rem;color:var(--muted);"></span>
+    </div>
+  </div>
+</div>
+
+<!-- GIFTS -->
+<div id="tab-gifts" class="section">
+
+  <!-- PAYMENT OPTIONS -->
+  <div class="card">
+    <h2>💳 Datos de pago para invitados</h2>
+    <p style="font-size:.85rem;color:var(--muted);margin-bottom:16px;">Configurá los medios de pago que vas a compartir con tus invitados. Regalo mínimo sugerido: <strong id="gift-min-display">$10</strong></p>
+
+    <div style="margin-bottom:16px;">
+      <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:6px;">💵 Monto mínimo sugerido (USD)</label>
+      <div class="form-row">
+        <input id="gift-min" type="number" min="1" placeholder="Ej: 10" style="max-width:160px;" />
+        <button class="btn btn-sm" onclick="saveGiftMin()">Guardar</button>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;">
+
+      <!-- TRANSFER -->
+      <div class="gift-method-card" id="gmc-transfer">
+        <div class="gift-method-header">
+          <span class="gift-method-icon">🏦</span>
+          <span class="gift-method-name">Transferencia bancaria</span>
+          <label class="gift-toggle"><input type="checkbox" id="gift-enable-transfer" onchange="toggleGiftMethod('transfer')" /><span></span></label>
+        </div>
+        <div class="gift-method-body" id="gmb-transfer">
+          <div class="form-row"><input id="gift-alias-transfer" placeholder="Alias (ej: maria.cumple.2025)" /></div>
+          <div class="form-row"><input id="gift-cbu" placeholder="CBU / CVU (opcional)" /></div>
+          <div class="form-row"><input id="gift-bank-name" placeholder="Nombre del titular" /></div>
+          <div class="form-row"><input id="gift-bank-extra" placeholder="Banco / Billetera (ej: Mercado Pago)" /></div>
+          <button class="btn btn-sm" onclick="saveGiftMethod('transfer')">💾 Guardar</button>
+        </div>
+      </div>
+
+      <!-- CARD -->
+      <div class="gift-method-card" id="gmc-card">
+        <div class="gift-method-header">
+          <span class="gift-method-icon">💳</span>
+          <span class="gift-method-name">Pago con tarjeta / link de pago</span>
+          <label class="gift-toggle"><input type="checkbox" id="gift-enable-card" onchange="toggleGiftMethod('card')" /><span></span></label>
+        </div>
+        <div class="gift-method-body" id="gmb-card">
+          <div class="form-row"><input id="gift-alias-card" placeholder="Alias del link de pago" /></div>
+          <div class="form-row"><input id="gift-link-card" placeholder="Link de pago (ej: mpago.com/tu-link)" /></div>
+          <div class="form-row"><input id="gift-card-name" placeholder="Nombre del titular" /></div>
+          <div class="form-row"><input id="gift-card-extra" placeholder="Plataforma (ej: Mercado Pago, PayPal)" /></div>
+          <button class="btn btn-sm" onclick="saveGiftMethod('card')">💾 Guardar</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- PREVIEW CARD -->
+  <div class="card">
+    <h2>👀 Vista previa — lo que verán los invitados</h2>
+    <div id="gift-preview"><p class="empty">Configurá al menos un medio de pago para ver la vista previa.</p></div>
+    <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;" class="no-print">
+      <button class="btn btn-success" onclick="copyGiftText()">📋 Copiar texto para compartir</button>
+    </div>
+  </div>
+
+  <!-- GIFT LOG -->
+  <div class="card">
+    <h2>📝 Registro de regalos recibidos</h2>
+    <div class="form-row no-print">
+      <input id="gift-from" placeholder="De quién" />
+      <input id="gift-amount" type="number" min="1" placeholder="Monto ($)" />
+      <select id="gift-method-sel">
+        <option value="transfer">Transferencia</option>
+        <option value="card">Tarjeta / Link</option>
+        <option value="cash">Efectivo</option>
+        <option value="other">Otro</option>
+      </select>
+      <input id="gift-log-note" placeholder="Nota (opcional)" />
+      <button class="btn" onclick="addGiftLog()">Registrar</button>
+    </div>
+    <div id="gift-log-summary" style="display:flex;gap:12px;flex-wrap:wrap;margin:12px 0;"></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>De quién</th><th>Monto</th><th>Método</th><th>Nota</th><th class="no-print"></th></tr></thead>
+        <tbody id="gift-log-tbody"><tr><td colspan="6" class="empty">Sin regalos registrados aún.</td></tr></tbody>
+      </table>
+    </div>
+    <div style="margin-top:12px;" class="no-print">
+      <button class="btn btn-success btn-sm" onclick="exportGiftsCSV()">⬇ Exportar registro CSV</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- INVITATIONS -->
+<div id="tab-invitations" class="section">
+
+  <!-- CONFIG -->
+  <div class="card no-print">
+    <h2>⚙️ Configuración de la invitación</h2>
+    <div class="form-row">
+      <div style="flex:1;min-width:200px;">
+        <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:6px;">📷 Foto (novios/agasajada)</label>
+        <input type="file" id="inv-photo-input" accept="image/*" onchange="previewInvPhoto(this)" />
+        <div style="margin-top:10px;text-align:center;" id="inv-photo-preview-wrap">
+          <div class="inv-photo-placeholder">🎉</div>
+        </div>
+      </div>
+      <div style="flex:2;min-width:240px;">
+        <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:6px;">✉️ Mensaje principal</label>
+        <textarea id="inv-message" rows="4" placeholder="Ej: Te invitamos a celebrar los 15 de María el sábado 10 de mayo a partir de las 20hs en Salón El Jardín..." style="width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:.9rem;font-family:inherit;outline:none;resize:vertical;"></textarea>
+      </div>
+    </div>
+    <div class="form-row">
+      <input id="inv-date" type="date" placeholder="Fecha del evento" />
+      <input id="inv-time" type="time" placeholder="Hora de inicio" />
+      <input id="inv-place" placeholder="Nombre del salón / lugar" />
+    </div>
+    <div class="form-row">
+      <input id="inv-address" placeholder="Dirección" />
+      <button class="btn btn-outline btn-sm" type="button" onclick="openMaps()" title="Ver en Google Maps" style="flex:0;white-space:nowrap;">📍 Ver en Maps</button>
+      <input id="inv-dresscode" placeholder="Dress code (opcional)" />
+      <input id="inv-extranote" placeholder="Nota extra (opcional)" />
+    </div>
+    <button class="btn" onclick="saveInvitationConfig()">💾 Guardar configuración</button>
+  </div>
+
+  <!-- PREVIEW -->
+  <div class="card">
+    <h2 class="no-print">💌 Vista previa de invitación</h2>
+
+    <div class="inv-guest-selector no-print">
+      <select id="inv-guest-select" onchange="renderInvCard()">
+        <option value="">— Seleccioná un invitado —</option>
+      </select>
+      <button class="btn btn-outline" onclick="renderInvCard()">🔄 Actualizar</button>
+    </div>
+
+    <div id="inv-card-wrap">
+      <p class="empty">Guardá la configuración y seleccioná un invitado para ver la invitación.</p>
+    </div>
+
+    <div class="inv-actions no-print" id="inv-single-actions" style="display:none;">
+      <button class="btn" onclick="copyInvWhatsapp()">📋 Copiar para WhatsApp</button>
+      <button class="btn btn-warning" onclick="printInvCard()">🖨 Imprimir tarjeta</button>
+    </div>
+  </div>
+
+  <!-- BULK -->
+  <div class="card no-print">
+    <h2>📤 Envío masivo</h2>
+    <p style="font-size:.85rem;color:var(--muted);margin-bottom:12px;">Generá el texto de invitación para todos los invitados de una vez, separados por <code>---</code>. Ideal para copiar y pegar uno por uno en WhatsApp.</p>
+    <button class="btn btn-success" onclick="copyAllInvitations()">📋 Copiar texto para todos los invitados</button>
+  </div>
+
+  <!-- QR -->
+  <div class="card no-print">
+    <h2>📱 Compartir por QR</h2>
+    <p style="font-size:.85rem;color:var(--muted);margin-bottom:14px;">Generá un código QR con los datos clave del evento. Requiere conexión a internet.</p>
+    <button class="btn" onclick="generateQR()">🔄 Generar QR del evento</button>
+    <div id="qr-wrap" style="margin-top:16px;text-align:center;display:none;">
+      <img id="qr-img" src="" alt="QR del evento" style="width:220px;height:220px;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.12);border:4px solid #ede9fe;" />
+      <div style="margin-top:12px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+        <a id="qr-download" download="qr-evento.png" class="btn btn-success btn-sm">⬇ Descargar QR</a>
+      </div>
+      <p style="font-size:.78rem;color:var(--muted);margin-top:8px;">Escaneá el QR para ver los datos del evento</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- NOTES -->
+<div id="tab-notes" class="section">
+  <div class="card no-print">
+    <h2>➕ Nueva nota</h2>
+    <div class="form-row">
+      <input id="note-title" placeholder="Título de la nota" style="flex:1;" />
+      <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+        <span style="font-size:.85rem;color:var(--muted);">Color:</span>
+        <label class="color-dot-label"><input type="radio" name="note-color" value="#fef9c3" checked /><span style="background:#fef9c3;"></span></label>
+        <label class="color-dot-label"><input type="radio" name="note-color" value="#dcfce7" /><span style="background:#dcfce7;"></span></label>
+        <label class="color-dot-label"><input type="radio" name="note-color" value="#dbeafe" /><span style="background:#dbeafe;"></span></label>
+        <label class="color-dot-label"><input type="radio" name="note-color" value="#fce7f3" /><span style="background:#fce7f3;"></span></label>
+        <label class="color-dot-label"><input type="radio" name="note-color" value="#ede9fe" /><span style="background:#ede9fe;"></span></label>
+      </div>
+    </div>
+    <div class="form-row">
+      <textarea id="note-text" rows="3" placeholder="Escribí tu nota acá..." style="flex:1;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:.9rem;font-family:inherit;outline:none;resize:vertical;"></textarea>
+    </div>
+    <button class="btn" onclick="addNote()">Agregar nota</button>
+  </div>
+  <div class="card">
+    <h2>📝 Mis notas</h2>
+    <div class="form-row no-print" style="margin-bottom:16px;">
+      <input id="note-search" placeholder="Buscar nota..." oninput="renderNotes()" style="flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.9rem;outline:none;" />
+    </div>
+    <div class="notes-grid" id="notes-grid"><p class="empty">Sin notas aún.</p></div>
+  </div>
+</div>
+
+<!-- CHECK-IN -->
+<div id="tab-checkin" class="section">
+  <div class="card">
+    <h2>✔ Control de asistencia — Día del evento</h2>
+    <div id="checkin-stats" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;"></div>
+    <div class="progress-wrap" style="margin-bottom:16px;"><div class="progress-bar" id="checkin-bar" style="width:0%;background:var(--success)"></div></div>
+    <div class="action-bar no-print">
+      <input id="checkin-search" placeholder="Buscar invitado..." oninput="renderCheckin()" style="flex:1;min-width:180px;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.9rem;outline:none;" />
+      <button class="btn btn-danger btn-sm" onclick="resetCheckin()">🔄 Resetear check-in</button>
+    </div>
+    <div id="checkin-list"><p class="empty">No hay invitados cargados aún.</p></div>
+  </div>
+</div>
+
+<!-- PRESTADORES DE SERVICIO -->
+<div id="tab-providers" class="section">
+  <div class="card">
+    <h2>➕ Agregar prestador</h2>
+    <div class="form-row">
+      <input id="prov-name"  placeholder="Nombre / Empresa" />
+      <select id="prov-rubro">
+        <option value="">-- Rubro --</option>
+        <option>Salón de eventos</option>
+        <option>Catering / Gastronomía</option>
+        <option>Fotografía y video</option>
+        <option>Música / DJ / Banda</option>
+        <option>Decoración y flores</option>
+        <option>Animación / Shows</option>
+        <option>Iluminación y sonido</option>
+        <option>Tortas y repostería</option>
+        <option>Vestimenta y maquillaje</option>
+        <option>Transporte</option>
+        <option>Cotillón y regalos</option>
+        <option>Fotografía de bodas</option>
+        <option>Organizador de eventos</option>
+        <option>Otro</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <input id="prov-contact" placeholder="Teléfono / WhatsApp" />
+      <input id="prov-email"   placeholder="Email (opcional)" />
+      <input id="prov-website" placeholder="Web o Instagram (opcional)" />
+    </div>
+    <div class="form-row">
+      <input id="prov-city"     placeholder="Ciudad" />
+      <input id="prov-province" placeholder="Provincia" />
+      <select id="prov-rating">
+        <option value="5">⭐⭐⭐⭐⭐ Excelente</option>
+        <option value="4">⭐⭐⭐⭐ Muy bueno</option>
+        <option value="3">⭐⭐⭐ Bueno</option>
+        <option value="2">⭐⭐ Regular</option>
+        <option value="1">⭐ Malo</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <textarea id="prov-notes" placeholder="Comentarios / referencia (opcional)" rows="2" style="flex:1;min-width:200px;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:.92rem;outline:none;font-family:inherit;resize:vertical;"></textarea>
+    </div>
+    <div class="form-row">
+      <button class="btn" onclick="addProvider()">Agregar prestador</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🏢 Directorio de prestadores</h2>
+    <div class="action-bar no-print" style="margin-bottom:16px;">
+      <input id="prov-search" placeholder="Buscar..." oninput="renderProviders()" style="flex:1;min-width:140px;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.9rem;outline:none;" />
+      <select id="prov-filter-rubro" onchange="renderProviders()" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.9rem;outline:none;">
+        <option value="">Todos los rubros</option>
+        <option>Salón de eventos</option>
+        <option>Catering / Gastronomía</option>
+        <option>Fotografía y video</option>
+        <option>Música / DJ / Banda</option>
+        <option>Decoración y flores</option>
+        <option>Animación / Shows</option>
+        <option>Iluminación y sonido</option>
+        <option>Tortas y repostería</option>
+        <option>Vestimenta y maquillaje</option>
+        <option>Transporte</option>
+        <option>Cotillón y regalos</option>
+        <option>Fotografía de bodas</option>
+        <option>Organizador de eventos</option>
+        <option>Otro</option>
+      </select>
+      <select id="prov-filter-province" onchange="renderProviders()" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.9rem;outline:none;">
+        <option value="">Todas las provincias</option>
+      </select>
+      <button class="btn btn-outline no-print" onclick="exportProvidersPDF()">🖨 PDF</button>
+      <button class="btn btn-outline no-print" onclick="exportProvidersCSV()">📊 Excel</button>
+    </div>
+    <div id="providers-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;"></div>
+  </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div id="tab-admin" class="section">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+      <h2 style="margin-bottom:0;">⚙ Panel de Administrador</h2>
+      <button class="btn btn-danger btn-sm" onclick="closeAdminSession()">🔒 Cerrar sesión admin</button>
+    </div>
+  </div>
+
+  <!-- 1. PRECIOS -->
+  <div class="card">
+    <div class="admin-section">
+      <h3>💰 Precios y suscripción</h3>
+      <div class="form-row">
+        <div style="flex:1;min-width:120px;"><label style="font-size:.82rem;color:var(--muted);display:block;margin-bottom:4px;">Precio mensual</label><input id="adm-price" type="number" min="1" placeholder="12" /></div>
+        <div style="flex:1;min-width:120px;"><label style="font-size:.82rem;color:var(--muted);display:block;margin-bottom:4px;">Días de prueba gratis</label><input id="adm-trial-days" type="number" min="0" placeholder="30" /></div>
+        <div style="flex:1;min-width:120px;"><label style="font-size:.82rem;color:var(--muted);display:block;margin-bottom:4px;">Moneda</label>
+          <select id="adm-currency" style="width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:.92rem;outline:none;">
+            <option value="USD">USD — Dólar</option><option value="ARS">ARS — Peso arg.</option>
+            <option value="MXN">MXN — Peso mex.</option><option value="CLP">CLP — Peso chil.</option><option value="COP">COP — Peso col.</option>
+          </select>
+        </div>
+      </div>
+      <div class="admin-toggle-row" style="margin-bottom:14px;">
+        <span class="admin-toggle-label">Activar modo prueba gratuita</span>
+        <label class="toggle-switch"><input type="checkbox" id="adm-trial-enabled" /><span class="toggle-slider"></span></label>
+      </div>
+      <button class="btn" onclick="saveAdminPricing()">💾 Guardar precios</button>
+    </div>
+  </div>
+
+  <!-- 2. USUARIOS -->
+  <div class="card">
+    <div class="admin-section">
+      <h3>👥 Usuarios registrados</h3>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
+        <button class="btn btn-success btn-sm" onclick="exportUsersCSV()">⬇ Exportar CSV</button>
+      </div>
+      <div style="overflow-x:auto;"><table class="admin-users-table" id="admin-users-table"><thead><tr><th>Evento</th><th>Registro</th><th>Estado</th><th>Días rest.</th><th>Acciones</th></tr></thead><tbody id="admin-users-tbody"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- 3. ESTADÍSTICAS -->
+  <div class="card">
+    <div class="admin-section">
+      <h3>💳 Estadísticas de pagos</h3>
+      <div class="admin-stat-grid" id="admin-stats-grid"></div>
+      <div class="admin-bar-chart" id="admin-bar-chart"></div>
+    </div>
+  </div>
+
+  <!-- 4. MÓDULOS -->
+  <div class="card">
+    <div class="admin-section">
+      <h3>🔧 Funcionalidades activas</h3>
+      <div id="admin-modules-list"></div>
+      <button class="btn" style="margin-top:12px;" onclick="saveAdminModules()">💾 Guardar módulos</button>
+    </div>
+  </div>
+
+  <!-- 5. BANNER -->
+  <div class="card">
+    <div class="admin-section">
+      <h3>📣 Mensaje personalizado</h3>
+      <div class="admin-toggle-row" style="margin-bottom:10px;">
+        <span class="admin-toggle-label">Mostrar banner en la app</span>
+        <label class="toggle-switch"><input type="checkbox" id="adm-banner-enabled" /><span class="toggle-slider"></span></label>
+      </div>
+      <div class="form-row">
+        <textarea id="adm-banner-text" rows="2" placeholder="Ej: 🎉 Promo: 20% off este mes usando el código FIESTA20" style="flex:1;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:.9rem;font-family:inherit;outline:none;resize:vertical;"></textarea>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap;">
+        <span style="font-size:.85rem;color:var(--muted);">Color:</span>
+        <label class="color-dot-label"><input type="radio" name="adm-banner-color" value="#6c63ff" checked /><span style="background:#6c63ff;"></span></label>
+        <label class="color-dot-label"><input type="radio" name="adm-banner-color" value="#22c55e" /><span style="background:#22c55e;"></span></label>
+        <label class="color-dot-label"><input type="radio" name="adm-banner-color" value="#f59e0b" /><span style="background:#f59e0b;"></span></label>
+        <label class="color-dot-label"><input type="radio" name="adm-banner-color" value="#ef4444" /><span style="background:#ef4444;"></span></label>
+        <label class="color-dot-label"><input type="radio" name="adm-banner-color" value="#1e1b4b" /><span style="background:#1e1b4b;"></span></label>
+      </div>
+      <button class="btn" onclick="saveAdminBanner()">💾 Guardar banner</button>
+    </div>
+  </div>
+
+  <!-- 6. PORTADA -->
+  <div class="card">
+    <div class="admin-section">
+      <h3>🖼 Foto de portada</h3>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;">
+        <div>
+          <p style="font-size:.82rem;color:var(--muted);margin-bottom:8px;">Vista previa actual:</p>
+          <img id="cover-preview" src="" alt="Portada" style="width:200px;height:120px;object-fit:cover;border-radius:10px;border:2px solid var(--border);" />
+        </div>
+        <div style="flex:1;min-width:220px;">
+          <p style="font-size:.82rem;color:var(--muted);margin-bottom:8px;">Subir foto desde tu computadora:</p>
+          <input type="file" id="cover-file" accept="image/*" onchange="uploadCoverImage(this)" style="font-size:.85rem;" />
+          <p style="font-size:.82rem;color:var(--muted);margin:12px 0 4px;">O pegá una URL de imagen:</p>
+          <div class="form-row" style="flex-wrap:nowrap;">
+            <input id="cover-url" placeholder="https://images.unsplash.com/..." style="flex:1;" />
+            <button class="btn" onclick="saveCoverUrl()">Aplicar</button>
+          </div>
+          <button class="btn btn-outline" style="margin-top:10px;font-size:.82rem;" onclick="resetCoverImage()">↩ Restaurar foto por defecto</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. SEGURIDAD -->
+  <div class="card">
+    <div class="admin-section">
+      <h3>🔐 Seguridad</h3>
+      </div>
+      <h4 style="font-size:.88rem;color:var(--muted);margin-bottom:8px;">Últimos accesos</h4>
+      <div id="admin-access-log"></div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- ADMIN LOGIN MODAL -->
+<div class="admin-modal-overlay" id="admin-modal">
+  <div class="admin-login-box">
+    <div style="font-size:2rem;margin-bottom:8px;">🔐</div>
+    <h2 id="admin-modal-title">Acceso Administrador</h2>
+    <p id="admin-modal-desc">Ingresá tu contraseña de administrador</p>
+    <input type="password" id="admin-pwd-input" placeholder="Contraseña" onkeydown="if(event.key==='Enter')submitAdminLogin()" />
+    <input type="password" id="admin-pwd2-input" placeholder="Repetir contraseña (primera vez)" style="display:none;" />
+    <div id="admin-login-error" style="color:var(--danger);font-size:.82rem;margin-bottom:8px;min-height:18px;"></div>
+    <button class="btn" style="width:100%;" onclick="submitAdminLogin()">Ingresar</button>
+    <button onclick="document.getElementById('admin-modal').classList.remove('open')" style="margin-top:10px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:.85rem;">Cancelar</button>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer style="text-align:center;padding:16px;font-size:.75rem;color:#c4b5fd;background:#1e1b4b;margin-top:40px;" class="no-print">
+  Organizador de Eventos Virtual &copy; 2025
+  <button onclick="openAdminLogin()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#c4b5fd;cursor:pointer;font-size:.78rem;margin-left:16px;padding:4px 12px;border-radius:8px;" title="Acceso administrador">⚙ Admin</button>
+</footer>
+
+<!-- PHOTO MODAL -->
+<div class="modal-overlay" id="photo-modal" onclick="closeModal(event)">
+  <div class="modal-box">
+    <button class="modal-close no-print" onclick="closePhotoModal()">✕</button>
+    <img id="modal-img" src="" alt="" />
+    <div style="margin-top:14px;">
+      <label style="font-size:.85rem;color:var(--muted);display:block;margin-bottom:6px;">Leyenda</label>
+      <div style="display:flex;gap:8px;">
+        <input id="modal-caption" style="flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.9rem;outline:none;" placeholder="Agregar leyenda..." />
+        <button class="btn btn-sm" onclick="saveCaption()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---- STATE ----
+let state = JSON.parse(localStorage.getItem('event-app') || 'null') || {
+  title: 'Mi Evento',
+  guests: [],
+  budget: 0,
+  expenses: [],
+  agenda: [],
+  tables: [],
+  tasks: [],
+  photos: []
+};
+// migrate old state
+if (!state.tables) state.tables = [];
+if (!state.tasks)  state.tasks  = [];
+if (!state.photos) state.photos = [];
+if (!state.music)  state.music  = {};
+if (!state.gifts)       state.gifts      = { min: 10, transfer: { enabled: false, alias:'', cbu:'', name:'', extra:'' }, card: { enabled: false, alias:'', link:'', name:'', extra:'' }, log: [] };
+if (!state.invitation)  state.invitation = { photo:'', message:'', date:'', time:'', place:'', address:'', dresscode:'', extraNote:'' };
+if (!state.notes)       state.notes      = [];
+state.guests.forEach(g => { if (g.checkin === undefined) g.checkin = false; });
+
+function save() { localStorage.setItem('event-app', JSON.stringify(state)); }
+
+// ---- NAV ----
+function showTab(id, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  btn.classList.add('active');
+  renderAll();
+}
+
+// ---- TITLE ----
+function editTitle() {
+  const t = prompt('Nombre del evento:', state.title);
+  if (t && t.trim()) { state.title = t.trim(); document.getElementById('event-title-display').textContent = state.title; save(); }
+}
+document.getElementById('event-title-display').textContent = state.title;
+
+// ---- GUESTS ----
+function addGuest() {
+  const name = document.getElementById('g-name').value.trim();
+  if (!name) { alert('Ingresa un nombre.'); return; }
+  state.guests.push({ id: Date.now(), name, email: document.getElementById('g-email').value.trim(), phone: document.getElementById('g-phone').value.trim(), rsvp: document.getElementById('g-rsvp').value, note: document.getElementById('g-note').value.trim(), tableId: null });
+  save(); renderAll();
+  ['g-name','g-email','g-phone','g-note'].forEach(i => document.getElementById(i).value = '');
+  document.getElementById('g-rsvp').value = 'pending';
+}
+
+async function importFromContacts() {
+  const msgEl = document.getElementById('contacts-msg');
+  msgEl.style.display = '';
+
+  // Verificar soporte Contact Picker API
+  if (!('contacts' in navigator && 'ContactsManager' in window)) {
+    msgEl.style.color = 'var(--warning)';
+    msgEl.textContent = '⚠ Tu navegador/dispositivo no soporta acceso a contactos. Usá Chrome en Android.';
+    return;
+  }
+
+  try {
+    msgEl.style.color = 'var(--muted)';
+    msgEl.textContent = 'Abriendo contactos...';
+
+    const contacts = await navigator.contacts.select(
+      ['name', 'email', 'tel'],
+      { multiple: true }
+    );
+
+    if (!contacts || contacts.length === 0) {
+      msgEl.textContent = 'No se seleccionaron contactos.';
+      return;
+    }
+
+    let added = 0, skipped = 0;
+    contacts.forEach(c => {
+      const name = (c.name && c.name[0]) ? c.name[0].trim() : '';
+      if (!name) { skipped++; return; }
+
+      // Evitar duplicados por nombre
+      if (state.guests.find(g => g.name.toLowerCase() === name.toLowerCase())) {
+        skipped++; return;
+      }
+
+      const email = (c.email && c.email[0]) ? c.email[0].trim() : '';
+      const phone = (c.tel   && c.tel[0])   ? c.tel[0].trim()   : '';
+
+      state.guests.push({
+        id: Date.now() + Math.random(),
+        name, email, phone,
+        rsvp: 'pending', note: '', tableId: null
+      });
+      added++;
+    });
+
+    save(); renderAll();
+
+    msgEl.style.color = added > 0 ? 'var(--success)' : 'var(--muted)';
+    msgEl.textContent = `✅ ${added} contacto(s) agregado(s)${skipped > 0 ? ` · ${skipped} omitido(s) (duplicados o sin nombre)` : ''}.`;
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      msgEl.textContent = 'Selección cancelada.';
+    } else {
+      msgEl.style.color = 'var(--danger)';
+      msgEl.textContent = '❌ Error al acceder a contactos: ' + err.message;
+    }
+  }
+
+  setTimeout(() => { msgEl.style.display = 'none'; }, 5000);
+}
+
+function updateRSVP(id, val) {
+  const g = state.guests.find(g => g.id === id);
+  if (g) { g.rsvp = val; save(); renderDashboard(); }
+}
+
+function deleteGuest(id) {
+  // remove from table
+  state.tables.forEach(t => { t.guestIds = t.guestIds.filter(gid => gid !== id); });
+  state.guests = state.guests.filter(g => g.id !== id);
+  save(); renderGuests(); renderTables(); renderDashboard();
+}
+
+function renderGuests() {
+  const search = (document.getElementById('g-search')||{value:''}).value.toLowerCase();
+  const filter = (document.getElementById('g-filter')||{value:'all'}).value;
+  let list = state.guests.filter(g => {
+    const ms = g.name.toLowerCase().includes(search) || (g.email||'').includes(search);
+    const mf = filter === 'all' || g.rsvp === filter;
+    return ms && mf;
+  });
+  const tbody = document.getElementById('guests-tbody');
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">Sin resultados.</td></tr>'; return; }
+  tbody.innerHTML = list.map((g,i) => {
+    const tbl = state.tables.find(t => t.guestIds.includes(g.id));
+    return `<tr>
+      <td>${i+1}</td>
+      <td><strong>${esc(g.name)}</strong></td>
+      <td style="font-size:.82rem;color:var(--muted)">${esc(g.email||'')}${g.phone?'<br>'+esc(g.phone):''}</td>
+      <td>
+        <select style="cursor:pointer;border:none;background:transparent;font-size:.85rem;font-weight:600;" onchange="updateRSVP(${g.id},this.value)">
+          <option value="pending" ${g.rsvp==='pending'?'selected':''}>⏳ Pendiente</option>
+          <option value="yes"     ${g.rsvp==='yes'?'selected':''}>✅ Confirmado</option>
+          <option value="no"      ${g.rsvp==='no'?'selected':''}>❌ No asiste</option>
+        </select>
+      </td>
+      <td style="font-size:.82rem;color:var(--muted)">${tbl ? esc(tbl.name) : '—'}</td>
+      <td style="font-size:.82rem;color:var(--muted)">${esc(g.note||'—')}</td>
+      <td class="no-print"><button class="btn btn-sm btn-danger" onclick="deleteGuest(${g.id})">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ---- BUDGET ----
+function setBudget() {
+  const v = parseFloat(document.getElementById('b-total').value);
+  if (isNaN(v) || v < 0) { alert('Ingresa un valor válido.'); return; }
+  state.budget = v; save(); renderBudget(); renderDashboard();
+  document.getElementById('b-total').value = '';
+}
+
+function addExpense() {
+  const name = document.getElementById('exp-name').value.trim();
+  const amount = parseFloat(document.getElementById('exp-amount').value);
+  if (!name || isNaN(amount) || amount <= 0) { alert('Completa la descripción y el monto.'); return; }
+  state.expenses.push({ id: Date.now(), name, category: document.getElementById('exp-cat').value, amount, date: document.getElementById('exp-date').value });
+  save(); renderBudget(); renderDashboard();
+  document.getElementById('exp-name').value = '';
+  document.getElementById('exp-amount').value = '';
+  document.getElementById('exp-date').value = '';
+}
+
+function deleteExpense(id) {
+  state.expenses = state.expenses.filter(e => e.id !== id);
+  save(); renderBudget(); renderDashboard();
+}
+
+function renderBudget() {
+  const total = state.budget;
+  const spent = state.expenses.reduce((s,e)=>s+e.amount,0);
+  const remain = total - spent;
+  document.getElementById('budget-summary').innerHTML = `
+    <div class="budget-box total"><div class="bnum">$${fmt(total)}</div><div class="blbl">Presupuesto total</div></div>
+    <div class="budget-box spent"><div class="bnum" style="color:var(--danger)">$${fmt(spent)}</div><div class="blbl">Gastado</div></div>
+    <div class="budget-box remain"><div class="bnum" style="color:${remain>=0?'var(--success)':'var(--danger)'}">$${fmt(remain)}</div><div class="blbl">Disponible</div></div>`;
+  const tbody = document.getElementById('expenses-tbody');
+  if (!state.expenses.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">Sin gastos registrados.</td></tr>'; return; }
+  tbody.innerHTML = [...state.expenses].reverse().map(e => `
+    <tr>
+      <td><strong>${esc(e.name)}</strong></td>
+      <td><span class="badge badge-pend">${esc(e.category)}</span></td>
+      <td style="font-size:.82rem;color:var(--muted)">${e.date||'—'}</td>
+      <td style="font-weight:700">$${fmt(e.amount)}</td>
+      <td class="no-print"><button class="btn btn-sm btn-danger" onclick="deleteExpense(${e.id})">✕</button></td>
+    </tr>`).join('');
+}
+
+// ---- AGENDA ----
+function addAgendaItem() {
+  const title = document.getElementById('ag-title').value.trim();
+  if (!title) { alert('Ingresa un título para la actividad.'); return; }
+  state.agenda.push({ id: Date.now(), title, date: document.getElementById('ag-date').value, time: document.getElementById('ag-time').value, desc: document.getElementById('ag-desc').value.trim(), location: document.getElementById('ag-location').value.trim() });
+  state.agenda.sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+  save(); renderAgenda(); renderDashboard();
+  ['ag-title','ag-date','ag-time','ag-desc','ag-location'].forEach(id => document.getElementById(id).value = '');
+}
+
+function deleteAgenda(id) {
+  state.agenda = state.agenda.filter(a => a.id !== id);
+  save(); renderAgenda(); renderDashboard();
+}
+
+function renderAgenda() {
+  const container = document.getElementById('agenda-list');
+  if (!state.agenda.length) { container.innerHTML = '<p class="empty">Sin actividades aún.</p>'; return; }
+  container.innerHTML = state.agenda.map(a => `
+    <div class="tl-item">
+      <div class="tl-dot"></div>
+      <div class="tl-time">${a.date?fmtDate(a.date):'Sin fecha'}${a.time?' · '+fmtTime(a.time):''}</div>
+      <div class="tl-card">
+        <div class="tl-title">${esc(a.title)}</div>
+        ${a.location?`<div class="tl-desc">📍 ${esc(a.location)}</div>`:''}
+        ${a.desc?`<div class="tl-desc">${esc(a.desc)}</div>`:''}
+        <div class="tl-actions no-print"><button class="btn btn-sm btn-danger" onclick="deleteAgenda(${a.id})">✕ Eliminar</button></div>
+      </div>
+    </div>`).join('');
+}
+
+// ---- TABLES (mesas) ----
+function printTables() {
+  if (!state.tables.length) { alert('No hay mesas creadas aún.'); return; }
+  // build print-only view
+  document.getElementById('tpv-event-title').textContent = state.title;
+  const inv = state.invitation;
+  let subtitle = 'Distribución de mesas';
+  if (inv.date) subtitle += ' · ' + fmtDate(inv.date);
+  if (inv.place) subtitle += ' · ' + inv.place;
+  document.getElementById('tpv-subtitle').textContent = subtitle;
+
+  document.getElementById('tpv-tables').innerHTML = state.tables.map(t => {
+    const guests = t.guestIds.map(gid => state.guests.find(g => g.id === gid)).filter(Boolean);
+    return `<div class="tpv-table-block">
+      <div class="tpv-table-name">🪑 ${esc(t.name)}</div>
+      <div class="tpv-table-meta">
+        Capacidad: ${t.capacity} lugares · Asignados: ${guests.length}
+        ${t.location ? ' · 📍 ' + esc(t.location) : ''}
+      </div>
+      ${guests.length
+        ? `<ul class="tpv-guest-list">${guests.map(g=>`<li>${esc(g.name)}</li>`).join('')}</ul>`
+        : '<p style="font-size:.85rem;color:#9ca3af;font-style:italic;">Sin invitados asignados</p>'}
+    </div>`;
+  }).join('');
+
+  document.body.classList.add('printing-tables');
+  window.print();
+  document.body.classList.remove('printing-tables');
+}
+function addTable() {
+  const name = document.getElementById('tbl-name').value.trim();
+  const cap  = parseInt(document.getElementById('tbl-cap').value);
+  const loc  = document.getElementById('tbl-location').value.trim();
+  if (!name) { alert('Ingresa un nombre para la mesa.'); return; }
+  if (!cap || cap < 1) { alert('Ingresa una capacidad válida.'); return; }
+  state.tables.push({ id: Date.now(), name, capacity: cap, location: loc, guestIds: [] });
+  save(); renderTables(); refreshTableSelects();
+  document.getElementById('tbl-name').value = '';
+  document.getElementById('tbl-cap').value = '';
+  document.getElementById('tbl-location').value = '';
+}
+
+function deleteTable(id) {
+  const tbl = state.tables.find(t => t.id === id);
+  if (tbl) { tbl.guestIds.forEach(gid => { const g = state.guests.find(g=>g.id===gid); if(g) g.tableId=null; }); }
+  state.tables = state.tables.filter(t => t.id !== id);
+  save(); renderTables(); renderGuests(); refreshTableSelects();
+}
+
+function unassignGuest(tableId, guestId) {
+  const tbl = state.tables.find(t => t.id === tableId);
+  if (tbl) tbl.guestIds = tbl.guestIds.filter(id => id !== guestId);
+  const g = state.guests.find(g => g.id === guestId);
+  if (g) g.tableId = null;
+  save(); renderTables(); renderGuests();
+}
+
+function assignGuestToTable() {
+  const gid = parseInt(document.getElementById('assign-guest').value);
+  const tid = parseInt(document.getElementById('assign-table').value);
+  if (!gid || !tid) { alert('Selecciona un invitado y una mesa.'); return; }
+  const tbl = state.tables.find(t => t.id === tid);
+  const g   = state.guests.find(g => g.id === gid);
+  if (!tbl || !g) return;
+  if (tbl.guestIds.length >= tbl.capacity) { alert(`La mesa "${tbl.name}" está llena (capacidad: ${tbl.capacity}).`); return; }
+  // remove from previous table
+  state.tables.forEach(t => { t.guestIds = t.guestIds.filter(id => id !== gid); });
+  tbl.guestIds.push(gid);
+  g.tableId = tid;
+  save(); renderTables(); renderGuests();
+}
+
+function refreshTableSelects() {
+  const gSel = document.getElementById('assign-guest');
+  const tSel = document.getElementById('assign-table');
+  if (!gSel || !tSel) return;
+  gSel.innerHTML = '<option value="">— Invitado —</option>' + state.guests.map(g => `<option value="${g.id}">${esc(g.name)}</option>`).join('');
+  tSel.innerHTML = '<option value="">— Mesa —</option>' + state.tables.map(t => `<option value="${t.id}">${esc(t.name)} (${t.guestIds.length}/${t.capacity})</option>`).join('');
+}
+
+function renderTables() {
+  const grid    = document.getElementById('tables-grid');
+  const summEl  = document.getElementById('tables-summary');
+  if (!state.tables.length) {
+    grid.innerHTML = '<p class="empty">No hay mesas creadas aún.</p>';
+    if (summEl) summEl.textContent = '';
+    refreshTableSelects(); return;
+  }
+  const totalSeats   = state.tables.reduce((s,t)=>s+t.capacity,0);
+  const totalAssigned= state.tables.reduce((s,t)=>s+t.guestIds.length,0);
+  if (summEl) summEl.textContent = `${state.tables.length} mesas · ${totalAssigned} invitados asignados · ${totalSeats} lugares totales`;
+
+  grid.innerHTML = state.tables.map(t => {
+    const guests = t.guestIds.map(gid => state.guests.find(g => g.id === gid)).filter(Boolean);
+    const pct = Math.round(guests.length / t.capacity * 100);
+    return `<div class="table-card">
+      <div class="table-card-header">
+        <span class="table-card-name">🪑 ${esc(t.name)}</span>
+        <button class="btn btn-sm btn-danger no-print" onclick="deleteTable(${t.id})">✕</button>
+      </div>
+      <div class="table-capacity">${guests.length} / ${t.capacity} lugares</div>
+      ${t.location ? `<div style="font-size:.78rem;color:var(--primary);margin-top:3px;">📍 ${esc(t.location)}</div>` : ''}
+      <div class="table-fill-bar"><div class="table-fill-inner" style="width:${pct}%;background:${pct>=100?'var(--danger)':pct>=80?'var(--warning)':'var(--success)'}"></div></div>
+      <div class="table-seats" style="margin-top:10px;">
+        ${guests.length ? guests.map(g => `<span class="seat-chip">${esc(g.name)}<button onclick="unassignGuest(${t.id},${g.id})" title="Quitar">×</button></span>`).join('') : '<span style="font-size:.8rem;color:var(--muted)">Sin invitados asignados</span>'}
+      </div>
+    </div>`;
+  }).join('');
+  refreshTableSelects();
+}
+
+// ---- TASKS ----
+function addTask() {
+  const text = document.getElementById('task-text').value.trim();
+  if (!text) { alert('Escribe una tarea.'); return; }
+  state.tasks.push({ id: Date.now(), text, done: false, priority: document.getElementById('task-priority').value });
+  save(); renderTasks(); renderDashboard();
+  document.getElementById('task-text').value = '';
+}
+
+function toggleTask(id) {
+  const t = state.tasks.find(t => t.id === id);
+  if (t) { t.done = !t.done; save(); renderTasks(); renderDashboard(); }
+}
+
+function deleteTask(id) {
+  state.tasks = state.tasks.filter(t => t.id !== id);
+  save(); renderTasks(); renderDashboard();
+}
+
+function clearDoneTasks() {
+  if (!state.tasks.some(t=>t.done)) { alert('No hay tareas completadas.'); return; }
+  if (!confirm('¿Eliminar todas las tareas completadas?')) return;
+  state.tasks = state.tasks.filter(t => !t.done);
+  save(); renderTasks(); renderDashboard();
+}
+
+function renderTasks() {
+  const filter = (document.getElementById('task-filter')||{value:'all'}).value;
+  const total = state.tasks.length;
+  const done  = state.tasks.filter(t=>t.done).length;
+  const pct   = total ? Math.round(done/total*100) : 0;
+  const pBar  = document.getElementById('tasks-progress-bar');
+  const pLbl  = document.getElementById('tasks-progress-lbl');
+  if (pBar) { pBar.style.width = pct+'%'; }
+  if (pLbl) { pLbl.textContent = `${done} / ${total}`; }
+
+  let list = state.tasks;
+  if (filter === 'pending') list = list.filter(t=>!t.done);
+  if (filter === 'done')    list = list.filter(t=>t.done);
+
+  const container = document.getElementById('tasks-list');
+  if (!list.length) { container.innerHTML = '<p class="empty">Sin tareas' + (filter!=='all'?' en este filtro':' aún') + '.</p>'; return; }
+
+  const priMap = { high: ['badge-high','Alta'], med: ['badge-med','Media'], low: ['badge-low','Baja'] };
+  container.innerHTML = list.map(t => {
+    const [cls, lbl] = priMap[t.priority] || priMap.med;
+    return `<div class="task-item">
+      <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask(${t.id})" />
+      <span class="task-text ${t.done?'done':''}">${esc(t.text)}</span>
+      <div class="task-actions">
+        <span class="badge ${cls}">${lbl}</span>
+        <button class="btn btn-sm btn-danger no-print" onclick="deleteTask(${t.id})">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ---- GALLERY ----
+let currentPhotoId = null;
+
+function uploadPhotos() {
+  const input = document.getElementById('photo-input');
+  const files = Array.from(input.files);
+  if (!files.length) { alert('Selecciona al menos una imagen.'); return; }
+  let loaded = 0;
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      state.photos.push({ id: Date.now() + Math.random(), name: file.name, dataUrl: e.target.result, caption: '' });
+      loaded++;
+      if (loaded === files.length) { save(); renderGallery(); }
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value = '';
+}
+
+function deletePhoto(id) {
+  state.photos = state.photos.filter(p => p.id !== id);
+  save(); renderGallery();
+}
+
+function openPhoto(id) {
+  const p = state.photos.find(p => p.id === id);
+  if (!p) return;
+  currentPhotoId = id;
+  document.getElementById('modal-img').src = p.dataUrl;
+  document.getElementById('modal-caption').value = p.caption || '';
+  document.getElementById('photo-modal').classList.add('open');
+}
+
+function closePhotoModal() {
+  document.getElementById('photo-modal').classList.remove('open');
+  currentPhotoId = null;
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('photo-modal')) closePhotoModal();
+}
+
+function saveCaption() {
+  if (!currentPhotoId) return;
+  const p = state.photos.find(p => p.id === currentPhotoId);
+  if (p) { p.caption = document.getElementById('modal-caption').value.trim(); save(); renderGallery(); }
+  closePhotoModal();
+}
+
+function renderGallery() {
+  const grid = document.getElementById('gallery-grid');
+  const cnt  = document.getElementById('gallery-count');
+  if (cnt) cnt.textContent = state.photos.length ? `(${state.photos.length})` : '';
+  if (!state.photos.length) { grid.innerHTML = '<p class="empty">Sin fotos aún.</p>'; return; }
+  grid.innerHTML = state.photos.map(p => `
+    <div class="gallery-item" onclick="openPhoto(${p.id})">
+      <img src="${p.dataUrl}" alt="${esc(p.name)}" loading="lazy" />
+      ${p.caption?`<div class="gallery-caption">${esc(p.caption)}</div>`:''}
+      <button class="del-photo no-print" onclick="event.stopPropagation();deletePhoto(${p.id})">✕</button>
+    </div>`).join('');
+}
+
+// ---- EXPORT ----
+function downloadCSV(filename, rows) {
+  const csv = rows.map(r => r.map(c => `"${String(c||'').replace(/"/g,'""')}"`).join(',')).join('\r\n');
+  const blob = new Blob(['\uFEFF'+csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportGuestsCSV() {
+  if (!state.guests.length) { alert('No hay invitados para exportar.'); return; }
+  const rows = [['Nombre','Email','Teléfono','Estado','Mesa','Nota']];
+  state.guests.forEach(g => {
+    const tbl = state.tables.find(t => t.guestIds.includes(g.id));
+    const rsvpMap = { yes:'Confirmado', no:'No asiste', pending:'Pendiente' };
+    rows.push([g.name, g.email||'', g.phone||'', rsvpMap[g.rsvp]||g.rsvp, tbl?tbl.name:'', g.note||'']);
+  });
+  downloadCSV('invitados.csv', rows);
+}
+
+function exportExpensesCSV() {
+  if (!state.expenses.length) { alert('No hay gastos para exportar.'); return; }
+  const rows = [['Descripción','Categoría','Fecha','Monto']];
+  state.expenses.forEach(e => rows.push([e.name, e.category, e.date||'', e.amount]));
+  downloadCSV('gastos.csv', rows);
+}
+
+function printSummary() { window.print(); }
+
+// ---- DASHBOARD ----
+function renderDashboard() {
+  const total     = state.guests.length;
+  const confirmed = state.guests.filter(g=>g.rsvp==='yes').length;
+  const declined  = state.guests.filter(g=>g.rsvp==='no').length;
+  const pending   = state.guests.filter(g=>g.rsvp==='pending').length;
+  const spent     = state.expenses.reduce((s,e)=>s+e.amount,0);
+  const tasksDone = state.tasks.filter(t=>t.done).length;
+  const tasksAll  = state.tasks.length;
+
+  document.getElementById('stats-row').innerHTML = `
+    <div class="stat"><div class="num">${total}</div><div class="lbl">Invitados</div></div>
+    <div class="stat"><div class="num" style="color:var(--success)">${confirmed}</div><div class="lbl">Confirmados</div></div>
+    <div class="stat"><div class="num" style="color:var(--danger)">${declined}</div><div class="lbl">No asisten</div></div>
+    <div class="stat"><div class="num" style="color:var(--warning)">${pending}</div><div class="lbl">Pendientes</div></div>
+    <div class="stat"><div class="num" style="color:var(--primary)">${state.agenda.length}</div><div class="lbl">Actividades</div></div>
+    <div class="stat"><div class="num" style="color:var(--success)">${tasksDone}<span style="font-size:1rem;color:var(--muted)">/${tasksAll}</span></div><div class="lbl">Tareas</div></div>`;
+
+  const rsvpPct = total ? Math.round(confirmed/total*100) : 0;
+  document.getElementById('rsvp-pct').textContent = rsvpPct + '%';
+  document.getElementById('rsvp-bar').style.width = rsvpPct + '%';
+
+  const budgetPct = state.budget ? Math.min(Math.round(spent/state.budget*100), 100) : 0;
+  document.getElementById('budget-pct').textContent = budgetPct + '%';
+  document.getElementById('budget-bar').style.width = budgetPct + '%';
+  document.getElementById('budget-bar').style.background = budgetPct>=90?'var(--danger)':budgetPct>=70?'var(--warning)':'var(--success)';
+
+  const tasksPct = tasksAll ? Math.round(tasksDone/tasksAll*100) : 0;
+  document.getElementById('tasks-pct').textContent = tasksPct + '%';
+  document.getElementById('tasks-bar').style.width = tasksPct + '%';
+
+  const today = new Date().toISOString().slice(0,10);
+  const upcoming = state.agenda.filter(a=>a.date>=today).slice(0,3);
+  const upEl = document.getElementById('upcoming-list');
+  if (!upcoming.length) { upEl.innerHTML = '<p class="empty">No hay próximas actividades.</p>'; return; }
+  upEl.innerHTML = upcoming.map(a => `
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="background:#ede9fe;border-radius:8px;padding:8px 12px;text-align:center;min-width:56px">
+        <div style="font-weight:700;color:var(--primary);font-size:1.1rem">${a.date?a.date.slice(8):'-'}</div>
+        <div style="font-size:.7rem;color:var(--muted)">${a.date?monthName(a.date):'—'}</div>
+      </div>
+      <div>
+        <div style="font-weight:600">${esc(a.title)}</div>
+        ${a.time?`<div style="font-size:.8rem;color:var(--muted)">🕐 ${fmtTime(a.time)}</div>`:''}
+        ${a.location?`<div style="font-size:.8rem;color:var(--muted)">📍 ${esc(a.location)}</div>`:''}
+      </div>
+    </div>`).join('');
+}
+
+// ---- UTILS ----
+function esc(s){ const d=document.createElement('div');d.textContent=s;return d.innerHTML; }
+function fmt(n){ return n.toLocaleString('es',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtDate(d){ const [y,m,day]=d.split('-'); return `${day}/${m}/${y}`; }
+function fmtTime(t){ if(!t)return''; const [h,m]=t.split(':'); const ap=+h>=12?'PM':'AM'; return `${(+h%12)||12}:${m} ${ap}`; }
+function monthName(d){ return ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][parseInt(d.slice(5,7))-1]; }
+
+// ---- TEMPLATES ----
+const TEMPLATES = {
+  quince: [
+    { icon:'🚗', title:'Llegada de invitados' },
+    { icon:'🌸', title:'Recepción' },
+    { icon:'👑', title:'Llegada de la agasajada' },
+    { icon:'📸', title:'Fotos con invitados' },
+    { icon:'🎁', title:'Entrega de regalos y flores' },
+    { icon:'👠', title:'Cambio de zapato' },
+    { icon:'💃', title:'Vals con el padre' },
+    { icon:'🕺', title:'Vals de los chambelanes' },
+    { icon:'🧸', title:'Entrega de la última muñeca' },
+    { icon:'🥂', title:'Brindis' },
+    { icon:'🍽', title:'Cena' },
+    { icon:'🕯', title:'Ceremonia de velas' },
+    { icon:'💐', title:'Ligas y ramos' },
+    { icon:'🎶', title:'Baile libre' },
+    { icon:'🎤', title:'Karaoke' },
+    { icon:'🎊', title:'Cierre del evento' },
+  ],
+  boda: [
+    { icon:'🚗', title:'Llegada de invitados' },
+    { icon:'⛪', title:'Ceremonia civil / religiosa' },
+    { icon:'🎉', title:'Salida de los novios' },
+    { icon:'📸', title:'Sesión de fotos' },
+    { icon:'🥂', title:'Recepción / Cocktail' },
+    { icon:'🎊', title:'Ingreso a la fiesta' },
+    { icon:'💃', title:'Primer vals' },
+    { icon:'🌹', title:'Baile con los padres' },
+    { icon:'🍽', title:'Cena' },
+    { icon:'🥂', title:'Brindis' },
+    { icon:'🎂', title:'Corte de torta' },
+    { icon:'💐', title:'Lanzamiento de ramo' },
+    { icon:'💙', title:'Ligas' },
+    { icon:'🎶', title:'Baile libre' },
+    { icon:'🎤', title:'Karaoke' },
+    { icon:'🎊', title:'Cierre del evento' },
+  ],
+  cumple: [
+    { icon:'🚗', title:'Llegada de invitados' },
+    { icon:'🌸', title:'Recepción' },
+    { icon:'🎂', title:'Llegada del/la agasajado/a' },
+    { icon:'📸', title:'Fotos grupales' },
+    { icon:'🎁', title:'Entrega de regalos' },
+    { icon:'🎮', title:'Juegos' },
+    { icon:'🎀', title:'Cintas / Sorpresas' },
+    { icon:'🥂', title:'Brindis' },
+    { icon:'🎂', title:'Torta y velas' },
+    { icon:'🍽', title:'Cena / Buffet' },
+    { icon:'🎤', title:'Karaoke' },
+    { icon:'🎶', title:'Baile libre' },
+    { icon:'🎊', title:'Cierre del evento' },
+  ],
+  general: [
+    { icon:'🚗', title:'Llegada de invitados' },
+    { icon:'🌸', title:'Recepción' },
+    { icon:'🎤', title:'Presentación / Bienvenida' },
+    { icon:'⭐', title:'Actividad principal' },
+    { icon:'📸', title:'Fotos grupales' },
+    { icon:'🎮', title:'Juegos' },
+    { icon:'🍽', title:'Cena / Buffet' },
+    { icon:'🥂', title:'Brindis' },
+    { icon:'🎶', title:'Baile libre' },
+    { icon:'🎊', title:'Cierre del evento' },
+  ]
+};
+
+let currentTemplate = 'quince';
+
+function selectTemplate(key, btn) {
+  currentTemplate = key;
+  document.querySelectorAll('.tmpl-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTemplateList();
+}
+
+function renderTemplateList() {
+  const list = TEMPLATES[currentTemplate] || [];
+  document.getElementById('template-list').innerHTML = list.map((a, i) => `
+    <div class="tmpl-row" id="tmpl-row-${i}" onclick="toggleTmplRow(${i})">
+      <input type="checkbox" id="tmpl-chk-${i}" onclick="event.stopPropagation();syncTmplRow(${i})" />
+      <span class="tmpl-icon">${a.icon}</span>
+      <span class="tmpl-name">${esc(a.title)}</span>
+      <input type="time" id="tmpl-time-${i}" onclick="event.stopPropagation()" style="width:120px;padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;outline:none;" />
+    </div>`).join('');
+}
+
+function toggleTmplRow(i) {
+  const chk = document.getElementById('tmpl-chk-'+i);
+  chk.checked = !chk.checked;
+  syncTmplRow(i);
+}
+
+function syncTmplRow(i) {
+  const chk = document.getElementById('tmpl-chk-'+i);
+  const row = document.getElementById('tmpl-row-'+i);
+  row.classList.toggle('checked', chk.checked);
+}
+
+function selectAllTemplate(val) {
+  const list = TEMPLATES[currentTemplate] || [];
+  list.forEach((_, i) => {
+    const chk = document.getElementById('tmpl-chk-'+i);
+    if (chk) { chk.checked = val; syncTmplRow(i); }
+  });
+}
+
+function addTemplateToAgenda() {
+  const list = TEMPLATES[currentTemplate] || [];
+  const date = document.getElementById('tmpl-date').value;
+  let added = 0;
+  list.forEach((a, i) => {
+    const chk = document.getElementById('tmpl-chk-'+i);
+    if (chk && chk.checked) {
+      const time = document.getElementById('tmpl-time-'+i).value;
+      state.agenda.push({ id: Date.now() + i, title: a.title, date, time, desc: '', location: '' });
+      added++;
+    }
+  });
+  if (!added) { alert('Marcá al menos una actividad.'); return; }
+  state.agenda.sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+  save(); renderAgenda(); renderDashboard();
+  selectAllTemplate(false);
+  alert(`✅ ${added} actividad${added>1?'es':''} agregada${added>1?'s':''} al cronograma.`);
+}
+
+// ---- MUSIC ----
+const MUSIC_MOMENTS = [
+  { key: 'recepcion',    icon: '🌸', label: 'Recepción' },
+  { key: 'entrada',      icon: '🎊', label: 'Entrada al salón' },
+  { key: 'previa_cena',  icon: '🎶', label: 'Previa a la cena' },
+  { key: 'cena',         icon: '🍽', label: 'Cena' },
+  { key: 'postre',       icon: '🍰', label: 'Postre' },
+  { key: 'juegos',       icon: '🎮', label: 'Juegos' },
+  { key: 'sorteo',       icon: '🎁', label: 'Sorteo' },
+  { key: 'vals',         icon: '💃', label: 'Vals' },
+  { key: 'velas',        icon: '🕯', label: 'Velas' },
+  { key: 'ligas',        icon: '💙', label: 'Ligas' },
+  { key: 'primer_baile', icon: '🎵', label: 'Primera tanda de baile' },
+  { key: 'torta',        icon: '🎂', label: 'Corte de torta' },
+  { key: 'karaoke',      icon: '🎤', label: 'Karaoke' },
+  { key: 'hora_loca',    icon: '🥳', label: 'Hora loca' },
+];
+
+let currentMoment = 'recepcion';
+
+// ensure all keys exist
+MUSIC_MOMENTS.forEach(m => { if (!state.music[m.key]) state.music[m.key] = []; });
+
+function selectMusicMoment(key) {
+  currentMoment = key;
+  renderMusicTab();
+}
+
+function addSong() {
+  const title = document.getElementById('song-title').value.trim();
+  if (!title) { alert('Ingresá el nombre de la canción.'); return; }
+  if (!state.music[currentMoment]) state.music[currentMoment] = [];
+  state.music[currentMoment].push({
+    id: Date.now(),
+    title,
+    artist: document.getElementById('song-artist').value.trim(),
+    link:   document.getElementById('song-link').value.trim(),
+    notes:  document.getElementById('song-notes').value.trim()
+  });
+  save(); renderMusicTab();
+  ['song-title','song-artist','song-link','song-notes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('song-title').focus();
+}
+
+function deleteSong(momentKey, id) {
+  if (!state.music[momentKey]) return;
+  state.music[momentKey] = state.music[momentKey].filter(s => s.id !== id);
+  save(); renderMusicTab();
+}
+
+function renderMusicTab() {
+  // moments nav
+  const nav = document.getElementById('music-moments-nav');
+  if (!nav) return;
+  nav.innerHTML = MUSIC_MOMENTS.map(m => {
+    const cnt = (state.music[m.key]||[]).length;
+    return `<button class="moment-btn ${m.key===currentMoment?'active':''}" onclick="selectMusicMoment('${m.key}')">
+      ${m.icon} ${m.label}${cnt>0?`<span class="mcnt">${cnt}</span>`:''}
+    </button>`;
+  }).join('');
+
+  // moment title
+  const m = MUSIC_MOMENTS.find(x => x.key === currentMoment);
+  const titleEl = document.getElementById('music-moment-title');
+  if (titleEl && m) titleEl.textContent = m.icon + ' ' + m.label;
+
+  // song list
+  const songs = state.music[currentMoment] || [];
+  const listEl = document.getElementById('music-song-list');
+  if (!listEl) return;
+  if (!songs.length) { listEl.innerHTML = '<p class="empty">Sin canciones para este momento aún.</p>'; }
+  else {
+    listEl.innerHTML = songs.map((s, i) => `
+      <div class="song-row">
+        <div class="song-num">${i+1}</div>
+        <div class="song-info">
+          <div class="song-title-text">🎵 ${esc(s.title)}</div>
+          ${s.artist ? `<div class="song-artist-text">👤 ${esc(s.artist)}</div>` : ''}
+          ${s.link   ? `<div style="margin-top:4px;"><a href="${esc(s.link)}" target="_blank" rel="noopener" style="font-size:.8rem;color:var(--primary);font-weight:600;text-decoration:none;">🔗 Abrir link</a></div>` : ''}
+          ${s.notes  ? `<div class="song-notes-text">💬 ${esc(s.notes)}</div>`  : ''}
+        </div>
+        <button class="btn btn-sm btn-danger no-print" onclick="deleteSong('${currentMoment}',${s.id})">✕</button>
+      </div>`).join('');
+  }
+
+  // total count
+  const total = MUSIC_MOMENTS.reduce((acc,m)=>acc+(state.music[m.key]||[]).length,0);
+  const countEl = document.getElementById('music-total-count');
+  if (countEl) countEl.textContent = total ? `${total} canción${total!==1?'es':''} en total` : 'No hay canciones cargadas aún.';
+}
+
+function exportMusicCSV() {
+  const total = MUSIC_MOMENTS.reduce((acc,m)=>acc+(state.music[m.key]||[]).length,0);
+  if (!total) { alert('No hay canciones para exportar.'); return; }
+  const rows = [['Momento','#','Canción','Artista','Link','Notas para el DJ']];
+  MUSIC_MOMENTS.forEach(m => {
+    const songs = state.music[m.key] || [];
+    songs.forEach((s, i) => rows.push([m.icon+' '+m.label, i+1, s.title, s.artist||'', s.link||'', s.notes||'']));
+  });
+  downloadCSV(`lista-musica-${state.title.replace(/\s+/g,'-')}.csv`, rows);
+}
+
+// ---- GIFTS ----
+function saveGiftMin() {
+  const v = parseFloat(document.getElementById('gift-min').value);
+  if (isNaN(v) || v < 1) { alert('Ingresá un monto válido.'); return; }
+  state.gifts.min = v; save(); renderGifts();
+  document.getElementById('gift-min').value = '';
+}
+
+function toggleGiftMethod(type) {
+  const chk = document.getElementById('gift-enable-'+type);
+  state.gifts[type].enabled = chk.checked;
+  save(); renderGifts();
+}
+
+function saveGiftMethod(type) {
+  if (type === 'transfer') {
+    state.gifts.transfer.alias = document.getElementById('gift-alias-transfer').value.trim();
+    state.gifts.transfer.cbu   = document.getElementById('gift-cbu').value.trim();
+    state.gifts.transfer.name  = document.getElementById('gift-bank-name').value.trim();
+    state.gifts.transfer.extra = document.getElementById('gift-bank-extra').value.trim();
+  } else {
+    state.gifts.card.alias = document.getElementById('gift-alias-card').value.trim();
+    state.gifts.card.link  = document.getElementById('gift-link-card').value.trim();
+    state.gifts.card.name  = document.getElementById('gift-card-name').value.trim();
+    state.gifts.card.extra = document.getElementById('gift-card-extra').value.trim();
+  }
+  save(); renderGifts();
+  alert('✅ Datos guardados.');
+}
+
+function addGiftLog() {
+  const from   = document.getElementById('gift-from').value.trim();
+  const amount = parseFloat(document.getElementById('gift-amount').value);
+  const min    = state.gifts.min || 10;
+  if (!from) { alert('Ingresá de quién es el regalo.'); return; }
+  if (isNaN(amount) || amount <= 0) { alert('Ingresá un monto válido.'); return; }
+  if (amount < min) {
+    if (!confirm(`El monto $${amount} es menor al mínimo sugerido de $${min}. ¿Registrar igual?`)) return;
+  }
+  const methodMap = { transfer:'Transferencia', card:'Tarjeta/Link', cash:'Efectivo', other:'Otro' };
+  state.gifts.log.push({
+    id: Date.now(), from, amount,
+    method: document.getElementById('gift-method-sel').value,
+    note: document.getElementById('gift-log-note').value.trim()
+  });
+  save(); renderGifts();
+  ['gift-from','gift-amount','gift-log-note'].forEach(id => document.getElementById(id).value = '');
+}
+
+function deleteGiftLog(id) {
+  state.gifts.log = state.gifts.log.filter(g => g.id !== id);
+  save(); renderGifts();
+}
+
+function renderGifts() {
+  const g = state.gifts;
+
+  // min display
+  const minEl = document.getElementById('gift-min-display');
+  if (minEl) minEl.textContent = '$' + (g.min || 10);
+
+  // toggle states
+  ['transfer','card'].forEach(type => {
+    const chk = document.getElementById('gift-enable-'+type);
+    const body = document.getElementById('gmb-'+type);
+    const card = document.getElementById('gmc-'+type);
+    if (!chk) return;
+    chk.checked = g[type].enabled;
+    body.classList.toggle('open', g[type].enabled);
+    card.classList.toggle('enabled', g[type].enabled);
+  });
+
+  // populate saved values
+  if (g.transfer.alias) document.getElementById('gift-alias-transfer').value = g.transfer.alias;
+  if (g.transfer.cbu)   document.getElementById('gift-cbu').value   = g.transfer.cbu;
+  if (g.transfer.name)  document.getElementById('gift-bank-name').value = g.transfer.name;
+  if (g.transfer.extra) document.getElementById('gift-bank-extra').value = g.transfer.extra;
+  if (g.card.alias) document.getElementById('gift-alias-card').value = g.card.alias;
+  if (g.card.link)  document.getElementById('gift-link-card').value  = g.card.link;
+  if (g.card.name)  document.getElementById('gift-card-name').value  = g.card.name;
+  if (g.card.extra) document.getElementById('gift-card-extra').value = g.card.extra;
+
+  // preview
+  const prevEl = document.getElementById('gift-preview');
+  if (prevEl) {
+    const hasAny = g.transfer.enabled || g.card.enabled;
+    if (!hasAny) { prevEl.innerHTML = '<p class="empty">Activá al menos un medio de pago para ver la vista previa.</p>'; }
+    else {
+      let html = `<div class="gift-preview-box">
+        <h3>🎁 ¡Querés hacerme un regalo?</h3>
+        <div class="gp-min">Regalo mínimo sugerido: <strong>$${g.min}</strong> USD</div>`;
+      if (g.transfer.enabled) {
+        html += `<div class="gift-method-block">
+          <div class="gm-title">🏦 Transferencia bancaria</div>
+          ${g.transfer.alias ? `<div class="gm-row">Alias: <span class="gm-alias">${esc(g.transfer.alias)}</span></div>` : ''}
+          ${g.transfer.cbu   ? `<div class="gm-row">CBU/CVU: <strong>${esc(g.transfer.cbu)}</strong></div>` : ''}
+          ${g.transfer.name  ? `<div class="gm-row">Titular: ${esc(g.transfer.name)}</div>` : ''}
+          ${g.transfer.extra ? `<div class="gm-row">${esc(g.transfer.extra)}</div>` : ''}
+        </div>`;
+      }
+      if (g.card.enabled) {
+        html += `<div class="gift-method-block">
+          <div class="gm-title">💳 Pago con tarjeta / link</div>
+          ${g.card.alias ? `<div class="gm-row">Alias: <span class="gm-alias">${esc(g.card.alias)}</span></div>` : ''}
+          ${g.card.link  ? `<div class="gm-row">Link: <a href="${esc(g.card.link)}" target="_blank" style="color:var(--primary);font-weight:600;">${esc(g.card.link)}</a></div>` : ''}
+          ${g.card.name  ? `<div class="gm-row">Titular: ${esc(g.card.name)}</div>` : ''}
+          ${g.card.extra ? `<div class="gm-row">${esc(g.card.extra)}</div>` : ''}
+        </div>`;
+      }
+      html += '</div>';
+      prevEl.innerHTML = html;
+    }
+  }
+
+  // gift log
+  const log = g.log || [];
+  const total = log.reduce((s,l)=>s+l.amount,0);
+  const summEl = document.getElementById('gift-log-summary');
+  if (summEl) {
+    summEl.innerHTML = `
+      <div class="budget-box total" style="min-width:120px;"><div class="bnum" style="font-size:1.3rem;">$${fmt(total)}</div><div class="blbl">Total recibido</div></div>
+      <div class="budget-box remain" style="min-width:120px;"><div class="bnum" style="font-size:1.3rem;">${log.length}</div><div class="blbl">Regalos</div></div>`;
+  }
+  const tbody = document.getElementById('gift-log-tbody');
+  if (tbody) {
+    if (!log.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty">Sin regalos registrados aún.</td></tr>'; }
+    else {
+      const mmap = { transfer:'🏦 Transferencia', card:'💳 Tarjeta/Link', cash:'💵 Efectivo', other:'🎁 Otro' };
+      tbody.innerHTML = [...log].reverse().map((l,i) => `
+        <tr>
+          <td>${log.length-i}</td>
+          <td><strong>${esc(l.from)}</strong></td>
+          <td style="font-weight:700;color:var(--success)">$${fmt(l.amount)}</td>
+          <td><span class="badge badge-pend" style="font-size:.75rem;">${mmap[l.method]||l.method}</span></td>
+          <td style="font-size:.82rem;color:var(--muted)">${esc(l.note||'—')}</td>
+          <td class="no-print"><button class="btn btn-sm btn-danger" onclick="deleteGiftLog(${l.id})">✕</button></td>
+        </tr>`).join('');
+    }
+  }
+}
+
+function copyGiftText() {
+  const g = state.gifts;
+  let txt = `🎁 ¡Querés hacerme un regalo?\nRegalo mínimo sugerido: $${g.min} USD\n\n`;
+  if (g.transfer.enabled) {
+    txt += `🏦 Transferencia bancaria\n`;
+    if (g.transfer.alias) txt += `Alias: ${g.transfer.alias}\n`;
+    if (g.transfer.cbu)   txt += `CBU/CVU: ${g.transfer.cbu}\n`;
+    if (g.transfer.name)  txt += `Titular: ${g.transfer.name}\n`;
+    if (g.transfer.extra) txt += `${g.transfer.extra}\n`;
+    txt += '\n';
+  }
+  if (g.card.enabled) {
+    txt += `💳 Pago con tarjeta / link\n`;
+    if (g.card.alias) txt += `Alias: ${g.card.alias}\n`;
+    if (g.card.link)  txt += `Link: ${g.card.link}\n`;
+    if (g.card.name)  txt += `Titular: ${g.card.name}\n`;
+    if (g.card.extra) txt += `${g.card.extra}\n`;
+  }
+  navigator.clipboard.writeText(txt).then(()=>alert('✅ Texto copiado al portapapeles. ¡Listo para compartir por WhatsApp!')).catch(()=>alert('No se pudo copiar automáticamente. Copiá el texto manualmente desde la vista previa.'));
+}
+
+function exportGiftsCSV() {
+  if (!state.gifts.log.length) { alert('No hay regalos registrados para exportar.'); return; }
+  const mmap = { transfer:'Transferencia', card:'Tarjeta/Link', cash:'Efectivo', other:'Otro' };
+  const rows = [['#','De quién','Monto ($)','Método','Nota']];
+  state.gifts.log.forEach((l,i) => rows.push([i+1, l.from, l.amount, mmap[l.method]||l.method, l.note||'']));
+  rows.push(['','TOTAL', state.gifts.log.reduce((s,l)=>s+l.amount,0), '', '']);
+  downloadCSV(`regalos-${state.title.replace(/\s+/g,'-')}.csv`, rows);
+}
+
+// ---- INVITATIONS ----
+function previewInvPhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    state.invitation.photo = e.target.result;
+    save();
+    updateInvPhotoPreview();
+  };
+  reader.readAsDataURL(file);
+}
+
+function updateInvPhotoPreview() {
+  const wrap = document.getElementById('inv-photo-preview-wrap');
+  if (!wrap) return;
+  wrap.innerHTML = state.invitation.photo
+    ? `<img src="${state.invitation.photo}" class="inv-photo" alt="foto" />`
+    : `<div class="inv-photo-placeholder">🎉</div>`;
+}
+
+function saveInvitationConfig() {
+  const inv = state.invitation;
+  inv.message   = document.getElementById('inv-message').value.trim();
+  inv.date      = document.getElementById('inv-date').value;
+  inv.time      = document.getElementById('inv-time').value;
+  inv.place     = document.getElementById('inv-place').value.trim();
+  inv.address   = document.getElementById('inv-address').value.trim();
+  inv.dresscode = document.getElementById('inv-dresscode').value.trim();
+  inv.extraNote = document.getElementById('inv-extranote').value.trim();
+  save();
+  renderInvCard();
+  alert('✅ Configuración guardada.');
+}
+
+function buildInvCardHTML(guest) {
+  const inv = state.invitation;
+  const tbl = state.tables.find(t => t.guestIds.includes(guest.id));
+  const agendaItems = state.agenda.filter(a => a.time).slice(0, 4);
+  const g = state.gifts;
+
+  let html = `<div class="inv-card" id="inv-card-printable">`;
+
+  // photo
+  html += `<div class="inv-photo-wrap">`;
+  html += inv.photo
+    ? `<img src="${inv.photo}" class="inv-photo" alt="foto" />`
+    : `<div class="inv-photo-placeholder">🎉</div>`;
+  html += `</div>`;
+
+  // title + divider
+  html += `<div class="inv-event-title">${esc(state.title)}</div>`;
+  html += `<div class="inv-divider"></div>`;
+
+  // guest greeting
+  html += `<div class="inv-guest-name">✨ Estimado/a ${esc(guest.name)}</div>`;
+
+  // message
+  if (inv.message) html += `<div class="inv-message">${esc(inv.message)}</div>`;
+
+  // date/time/place
+  if (inv.date || inv.time || inv.place) {
+    html += `<div class="inv-section">
+      <div class="inv-section-title">📅 Cuándo y dónde</div>`;
+    if (inv.date) html += `<div class="inv-row">📆 <span><strong>${fmtDate(inv.date)}</strong></span></div>`;
+    if (inv.time) html += `<div class="inv-row">🕐 <span>${fmtTime(inv.time)} hs</span></div>`;
+    if (inv.place)   html += `<div class="inv-row">🏛 <span>${esc(inv.place)}</span></div>`;
+    if (inv.address) html += `<div class="inv-row">📍 <span>${esc(inv.address)}</span></div>`;
+    html += `</div>`;
+  }
+
+  // table
+  if (tbl) {
+    html += `<div class="inv-section">
+      <div class="inv-section-title">🪑 Tu lugar</div>
+      <div class="inv-row">🪑 <span>Mesa: <strong>${esc(tbl.name)}</strong></span></div>
+    </div>`;
+  }
+
+  // agenda highlights
+  if (agendaItems.length) {
+    html += `<div class="inv-section">
+      <div class="inv-section-title">⏱ Momentos del evento</div>`;
+    agendaItems.forEach(a => {
+      html += `<div class="inv-row">🎵 <span><strong>${fmtTime(a.time)}</strong> — ${esc(a.title)}</span></div>`;
+    });
+    html += `</div>`;
+  }
+
+  // gifts
+  const hasGift = g.transfer.enabled || g.card.enabled;
+  if (hasGift) {
+    html += `<div class="inv-section">
+      <div class="inv-section-title">🎁 Si querés hacerme un regalo</div>
+      <div class="inv-row" style="font-size:.82rem;color:var(--muted);">Monto mínimo sugerido: <strong>$${g.min}</strong> USD</div>`;
+    if (g.transfer.enabled) {
+      html += `<div class="inv-row">🏦 <span>Transferencia`;
+      if (g.transfer.alias) html += ` — Alias: <span class="inv-alias">${esc(g.transfer.alias)}</span>`;
+      if (g.transfer.cbu)   html += `<br><small style="color:var(--muted);padding-left:24px;">CBU/CVU: ${esc(g.transfer.cbu)}</small>`;
+      if (g.transfer.name)  html += `<br><small style="color:var(--muted);padding-left:24px;">Titular: ${esc(g.transfer.name)}</small>`;
+      if (g.transfer.extra) html += `<br><small style="color:var(--muted);padding-left:24px;">${esc(g.transfer.extra)}</small>`;
+      html += `</span></div>`;
+    }
+    if (g.card.enabled) {
+      html += `<div class="inv-row">💳 <span>Tarjeta / Link`;
+      if (g.card.alias) html += ` — Alias: <span class="inv-alias">${esc(g.card.alias)}</span>`;
+      if (g.card.link)  html += `<br><small style="color:var(--muted);padding-left:24px;"><a href="${esc(g.card.link)}" target="_blank" style="color:var(--primary);">${esc(g.card.link)}</a></small>`;
+      if (g.card.name)  html += `<br><small style="color:var(--muted);padding-left:24px;">Titular: ${esc(g.card.name)}</small>`;
+      if (g.card.extra) html += `<br><small style="color:var(--muted);padding-left:24px;">${esc(g.card.extra)}</small>`;
+      html += `</span></div>`;
+    }
+    html += `</div>`;
+  }
+
+  // dresscode + extra
+  if (inv.dresscode || inv.extraNote) {
+    html += `<div class="inv-section">`;
+    if (inv.dresscode) html += `<div class="inv-row">👗 <span>Dress code: <strong>${esc(inv.dresscode)}</strong></span></div>`;
+    if (inv.extraNote) html += `<div class="inv-row">💬 <span>${esc(inv.extraNote)}</span></div>`;
+    html += `</div>`;
+  }
+
+  html += `<div class="inv-footer">— ${esc(state.title)} —</div>`;
+  html += `</div>`;
+  return html;
+}
+
+function buildInvText(guest) {
+  const inv = state.invitation;
+  const tbl = state.tables.find(t => t.guestIds.includes(guest.id));
+  const agendaItems = state.agenda.filter(a => a.time).slice(0, 4);
+  const g = state.gifts;
+  let txt = `🎉 *${state.title}*\n\n`;
+  txt += `✨ Estimado/a *${guest.name}*\n\n`;
+  if (inv.message) txt += `${inv.message}\n\n`;
+  if (inv.date || inv.time || inv.place) {
+    txt += `📅 *Cuándo y dónde*\n`;
+    if (inv.date)    txt += `📆 ${fmtDate(inv.date)}\n`;
+    if (inv.time)    txt += `🕐 ${fmtTime(inv.time)} hs\n`;
+    if (inv.place)   txt += `🏛 ${inv.place}\n`;
+    if (inv.address) txt += `📍 ${inv.address}\n`;
+    txt += '\n';
+  }
+  if (tbl) txt += `🪑 *Tu mesa:* ${tbl.name}\n\n`;
+  if (agendaItems.length) {
+    txt += `⏱ *Momentos del evento*\n`;
+    agendaItems.forEach(a => txt += `• ${fmtTime(a.time)} — ${a.title}\n`);
+    txt += '\n';
+  }
+  if (g.transfer.enabled || g.card.enabled) {
+    txt += `🎁 *¿Querés hacerme un regalo?*\nMonto mínimo: $${g.min} USD\n`;
+    if (g.transfer.enabled) {
+      txt += `🏦 Transferencia`;
+      if (g.transfer.alias) txt += ` — Alias: ${g.transfer.alias}`;
+      if (g.transfer.cbu)   txt += `\n   CBU/CVU: ${g.transfer.cbu}`;
+      if (g.transfer.name)  txt += `\n   Titular: ${g.transfer.name}`;
+      txt += '\n';
+    }
+    if (g.card.enabled) {
+      txt += `💳 Link de pago`;
+      if (g.card.alias) txt += ` — Alias: ${g.card.alias}`;
+      if (g.card.link)  txt += `\n   ${g.card.link}`;
+      if (g.card.name)  txt += `\n   Titular: ${g.card.name}`;
+      txt += '\n';
+    }
+    txt += '\n';
+  }
+  if (inv.dresscode) txt += `👗 Dress code: ${inv.dresscode}\n`;
+  if (inv.extraNote) txt += `💬 ${inv.extraNote}\n`;
+  txt += `\n— ${state.title} —`;
+  return txt;
+}
+
+function renderInvitations() {
+  // populate guest select
+  const sel = document.getElementById('inv-guest-select');
+  if (!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">— Seleccioná un invitado —</option>' +
+    state.guests.map(g => `<option value="${g.id}" ${g.id==prev?'selected':''}>${esc(g.name)}</option>`).join('');
+  // restore form values
+  const inv = state.invitation;
+  const fields = { 'inv-message': inv.message, 'inv-date': inv.date, 'inv-time': inv.time, 'inv-place': inv.place, 'inv-address': inv.address, 'inv-dresscode': inv.dresscode, 'inv-extranote': inv.extraNote };
+  Object.entries(fields).forEach(([id, val]) => { const el = document.getElementById(id); if (el && val) el.value = val; });
+  updateInvPhotoPreview();
+  if (prev) renderInvCard();
+}
+
+function renderInvCard() {
+  const sel = document.getElementById('inv-guest-select');
+  if (!sel) return;
+  const gid = parseInt(sel.value);
+  const wrap = document.getElementById('inv-card-wrap');
+  const actions = document.getElementById('inv-single-actions');
+  if (!gid) {
+    wrap.innerHTML = '<p class="empty">Seleccioná un invitado para ver la invitación.</p>';
+    if (actions) actions.style.display = 'none';
+    return;
+  }
+  const guest = state.guests.find(g => g.id === gid);
+  if (!guest) return;
+  wrap.innerHTML = buildInvCardHTML(guest);
+  if (actions) actions.style.display = 'flex';
+}
+
+function copyInvWhatsapp() {
+  const sel = document.getElementById('inv-guest-select');
+  const gid = parseInt(sel.value);
+  if (!gid) { alert('Seleccioná un invitado.'); return; }
+  const guest = state.guests.find(g => g.id === gid);
+  if (!guest) return;
+  const txt = buildInvText(guest);
+  navigator.clipboard.writeText(txt)
+    .then(()  => alert('✅ Invitación copiada. ¡Pegala en WhatsApp!'))
+    .catch(()  => alert('No se pudo copiar automáticamente. Usá el botón de imprimir o copiá manualmente.'));
+}
+
+function printInvCard() {
+  window.print();
+}
+
+function copyAllInvitations() {
+  if (!state.guests.length) { alert('No hay invitados cargados.'); return; }
+  const all = state.guests.map(g => buildInvText(g)).join('\n\n---\n\n');
+  navigator.clipboard.writeText(all)
+    .then(()  => alert(`✅ Invitaciones de ${state.guests.length} invitado${state.guests.length!==1?'s':''} copiadas al portapapeles.`))
+    .catch(()  => alert('No se pudo copiar automáticamente.'));
+}
+
+// ---- JSON BACKUP ----
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = `backup-${state.title.replace(/\s+/g,'-')}.json`; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importJSON(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (!confirm('¿Reemplazar TODOS los datos actuales con el backup? Esta acción no se puede deshacer.')) { input.value=''; return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      Object.assign(state, data);
+      save(); renderAll();
+      document.getElementById('event-title-display').textContent = state.title;
+      alert('✅ Datos restaurados correctamente.');
+    } catch { alert('❌ Archivo inválido. Asegurate de subir un backup JSON generado por esta app.'); }
+  };
+  reader.readAsText(file);
+  input.value = '';
+}
+
+// ---- COUNTDOWN ----
+let countdownInterval = null;
+
+function renderCountdown() {
+  const el = document.getElementById('countdown-display');
+  if (!el) return;
+  const dateStr = state.invitation && state.invitation.date;
+  if (!dateStr) { el.innerHTML = '<p class="empty" style="padding:10px 0;">Configurá la fecha del evento en la pestaña 💌 Invitaciones.</p>'; return; }
+  const target = new Date(dateStr + 'T' + (state.invitation.time || '00:00'));
+  const now = new Date();
+  const diff = target - now;
+  if (diff <= 0) { el.innerHTML = '<div class="countdown-done">🎉 ¡El evento ya ocurrió! ¡Fue un éxito!</div>'; return; }
+  const d  = Math.floor(diff / 86400000);
+  const h  = Math.floor((diff % 86400000) / 3600000);
+  const m  = Math.floor((diff % 3600000) / 60000);
+  const s  = Math.floor((diff % 60000) / 1000);
+  el.innerHTML = `<div class="countdown-wrap">
+    <div class="countdown-block"><div class="countdown-num">${String(d).padStart(2,'0')}</div><div class="countdown-lbl">Días</div></div>
+    <div class="countdown-block"><div class="countdown-num">${String(h).padStart(2,'0')}</div><div class="countdown-lbl">Horas</div></div>
+    <div class="countdown-block"><div class="countdown-num">${String(m).padStart(2,'0')}</div><div class="countdown-lbl">Min</div></div>
+    <div class="countdown-block"><div class="countdown-num">${String(s).padStart(2,'0')}</div><div class="countdown-lbl">Seg</div></div>
+  </div>`;
+}
+
+function startCountdown() {
+  if (countdownInterval) clearInterval(countdownInterval);
+  renderCountdown();
+  countdownInterval = setInterval(renderCountdown, 1000);
+}
+
+// ---- GOOGLE MAPS ----
+function openMaps() {
+  const addr = document.getElementById('inv-address').value.trim() || (state.invitation && state.invitation.address);
+  if (!addr) { alert('Ingresá una dirección primero.'); return; }
+  window.open('https://maps.google.com/?q=' + encodeURIComponent(addr), '_blank');
+}
+
+// ---- NOTES ----
+function addNote() {
+  const title = document.getElementById('note-title').value.trim();
+  const text  = document.getElementById('note-text').value.trim();
+  if (!title && !text) { alert('Escribí al menos un título o texto.'); return; }
+  const color = document.querySelector('input[name="note-color"]:checked')?.value || '#fef9c3';
+  state.notes.push({ id: Date.now(), title, text, color, createdAt: new Date().toISOString() });
+  save(); renderNotes();
+  document.getElementById('note-title').value = '';
+  document.getElementById('note-text').value  = '';
+}
+
+function deleteNote(id) {
+  state.notes = state.notes.filter(n => n.id !== id);
+  save(); renderNotes();
+}
+
+function renderNotes() {
+  const search = (document.getElementById('note-search')||{value:''}).value.toLowerCase();
+  const grid = document.getElementById('notes-grid');
+  if (!grid) return;
+  let list = state.notes.filter(n =>
+    n.title.toLowerCase().includes(search) || n.text.toLowerCase().includes(search)
+  );
+  if (!list.length) { grid.innerHTML = '<p class="empty">Sin notas' + (search?' que coincidan':' aún') + '.</p>'; return; }
+  grid.innerHTML = [...list].reverse().map(n => `
+    <div class="note-card" style="background:${n.color};">
+      <button class="note-card-del no-print" onclick="deleteNote(${n.id})" title="Eliminar">✕</button>
+      ${n.title ? `<div class="note-card-title">${esc(n.title)}</div>` : ''}
+      <div class="note-card-text">${esc(n.text)}</div>
+      <div class="note-card-date">${new Date(n.createdAt).toLocaleDateString('es',{day:'2-digit',month:'short',year:'numeric'})}</div>
+    </div>`).join('');
+}
+
+// ---- CHECK-IN ----
+function toggleCheckin(id) {
+  const g = state.guests.find(g => g.id === id);
+  if (!g) return;
+  g.checkin = !g.checkin;
+  save(); renderCheckin();
+}
+
+function resetCheckin() {
+  if (!confirm('¿Resetear el check-in de todos los invitados?')) return;
+  state.guests.forEach(g => g.checkin = false);
+  save(); renderCheckin();
+}
+
+function renderCheckin() {
+  const search   = (document.getElementById('checkin-search')||{value:''}).value.toLowerCase();
+  const statsEl  = document.getElementById('checkin-stats');
+  const barEl    = document.getElementById('checkin-bar');
+  const listEl   = document.getElementById('checkin-list');
+  if (!listEl) return;
+
+  const total   = state.guests.length;
+  const arrived = state.guests.filter(g => g.checkin).length;
+  const absent  = total - arrived;
+  const pct     = total ? Math.round(arrived / total * 100) : 0;
+
+  if (statsEl) statsEl.innerHTML = `
+    <div class="budget-box total"  style="min-width:110px;"><div class="bnum" style="font-size:1.3rem;">${total}</div><div class="blbl">Total invitados</div></div>
+    <div class="budget-box remain" style="min-width:110px;"><div class="bnum" style="font-size:1.3rem;color:var(--success)">${arrived}</div><div class="blbl">Llegaron ✅</div></div>
+    <div class="budget-box spent"  style="min-width:110px;"><div class="bnum" style="font-size:1.3rem;color:var(--danger)">${absent}</div><div class="blbl">Ausentes ❌</div></div>
+    <div class="budget-box total"  style="min-width:110px;"><div class="bnum" style="font-size:1.3rem;">${pct}%</div><div class="blbl">Asistencia</div></div>`;
+
+  if (barEl) barEl.style.width = pct + '%';
+
+  let list = state.guests.filter(g => g.name.toLowerCase().includes(search));
+  if (!total)  { listEl.innerHTML = '<p class="empty">No hay invitados cargados aún.</p>'; return; }
+  if (!list.length) { listEl.innerHTML = '<p class="empty">Sin resultados.</p>'; return; }
+
+  listEl.innerHTML = list.map(g => {
+    const tbl = state.tables.find(t => t.guestIds.includes(g.id));
+    return `<div class="checkin-item">
+      <div class="checkin-info">
+        <div class="checkin-name">${esc(g.name)}</div>
+        <div class="checkin-table">${tbl ? '🪑 ' + esc(tbl.name) : 'Sin mesa asignada'}</div>
+      </div>
+      <button class="checkin-btn ${g.checkin?'arrived':'absent'}" onclick="toggleCheckin(${g.id})">
+        ${g.checkin ? '✅ Llegó' : '⬜ Marcar llegada'}
+      </button>
+    </div>`;
+  }).join('');
+}
+
+// ---- QR ----
+function generateQR() {
+  const inv = state.invitation;
+  let txt = `${state.title}`;
+  if (inv.date) txt += `\nFecha: ${fmtDate(inv.date)}`;
+  if (inv.time) txt += ` a las ${fmtTime(inv.time)}`;
+  if (inv.place)   txt += `\nLugar: ${inv.place}`;
+  if (inv.address) txt += `\nDir: ${inv.address}`;
+  const url  = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(txt)}`;
+  const img  = document.getElementById('qr-img');
+  const wrap = document.getElementById('qr-wrap');
+  const dl   = document.getElementById('qr-download');
+  img.src = url;
+  img.onload = () => { dl.href = url; };
+  wrap.style.display = 'block';
+}
+
+// ---- ADMIN ----
+const ADMIN_KEY = 'admin-config';
+const ADMIN_SESSION_KEY = 'admin-session';
+const SESSION_TTL = 2 * 60 * 60 * 1000; // 2 hours
+
+const MODULE_DEFS = [
+  { key:'gallery',     label:'🖼 Galería de fotos',        tab:'gallery' },
+  { key:'music',       label:'🎵 Música para DJ',           tab:'music' },
+  { key:'gifts',       label:'🎁 Regalos / pagos',          tab:'gifts' },
+  { key:'invitations', label:'💌 Invitaciones',             tab:'invitations' },
+  { key:'notes',       label:'📝 Notas generales',          tab:'notes' },
+  { key:'checkin',     label:'✔ Check-in',                  tab:'checkin' },
+  { key:'qr',          label:'📱 QR (dentro de Invitaciones)', tab:null },
+  { key:'backup',      label:'💾 Backup JSON (header)',      tab:null },
+];
+
+function getAdminConfig() {
+  try { return JSON.parse(localStorage.getItem(ADMIN_KEY) || 'null') || {}; } catch { return {}; }
+}
+function saveAdminConfig(cfg) { localStorage.setItem(ADMIN_KEY, JSON.stringify(cfg)); }
+
+async function sha256(text) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+function isAdminSessionActive() {
+  try {
+    const s = JSON.parse(sessionStorage.getItem(ADMIN_SESSION_KEY) || 'null');
+    return s && (Date.now() - s.at < SESSION_TTL);
+  } catch { return false; }
+}
+
+function openAdminLogin() {
+  if (isAdminSessionActive()) { openAdminPanel(); return; }
+  const cfg = getAdminConfig();
+  const isFirst = !cfg.passwordHash;
+  document.getElementById('admin-modal-title').textContent = isFirst ? 'Crear contraseña admin' : 'Acceso Administrador';
+  document.getElementById('admin-modal-desc').textContent  = isFirst ? 'Primera vez: creá tu contraseña segura' : 'Ingresá tu contraseña de administrador';
+  document.getElementById('admin-pwd2-input').style.display = isFirst ? '' : 'none';
+  document.getElementById('admin-pwd-input').value  = '';
+  document.getElementById('admin-pwd2-input').value = '';
+  document.getElementById('admin-login-error').textContent = '';
+  document.getElementById('admin-modal').classList.add('open');
+  setTimeout(() => document.getElementById('admin-pwd-input').focus(), 100);
+}
+
+async function submitAdminLogin() {
+  const cfg = getAdminConfig();
+  const pwd  = document.getElementById('admin-pwd-input').value;
+  const pwd2 = document.getElementById('admin-pwd2-input').value;
+  const errEl = document.getElementById('admin-login-error');
+  if (!pwd) { errEl.textContent = 'Ingresá una contraseña.'; return; }
+  const isFirst = !cfg.passwordHash;
+  if (isFirst) {
+    if (pwd.length < 6) { errEl.textContent = 'Mínimo 6 caracteres.'; return; }
+    if (pwd !== pwd2)   { errEl.textContent = 'Las contraseñas no coinciden.'; return; }
+    cfg.passwordHash = await sha256(pwd);
+    cfg.accessLog = [];
+    saveAdminConfig(cfg);
+    startAdminSession(); return;
+  }
+  const hash = await sha256(pwd);
+  if (hash !== cfg.passwordHash) { errEl.textContent = 'Contraseña incorrecta.'; return; }
+  startAdminSession();
+}
+
+function startAdminSession() {
+  sessionStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify({ at: Date.now() }));
+  const cfg = getAdminConfig();
+  cfg.accessLog = cfg.accessLog || [];
+  cfg.accessLog.unshift({ at: new Date().toISOString() });
+  if (cfg.accessLog.length > 20) cfg.accessLog = cfg.accessLog.slice(0, 20);
+  saveAdminConfig(cfg);
+  document.getElementById('admin-modal').classList.remove('open');
+  openAdminPanel();
+}
+
+function openAdminPanel() {
+  // Ocultar pantalla de bienvenida si está visible
+  hideWelcome();
+  document.getElementById('admin-header-badge').style.display = '';
+  document.getElementById('nav-admin-btn').style.display = '';
+  // Pequeño delay para que el DOM se actualice antes del click
+  setTimeout(() => {
+    document.getElementById('nav-admin-btn').click();
+    renderAdminPanel();
+  }, 50);
+}
+
+function closeAdminSession() {
+  sessionStorage.removeItem(ADMIN_SESSION_KEY);
+  document.getElementById('admin-header-badge').style.display = 'none';
+  document.getElementById('nav-admin-btn').style.display = 'none';
+  // go to dashboard
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelector('nav button').classList.add('active');
+  document.getElementById('tab-dashboard').classList.add('active');
+  renderDashboard();
+}
+
+function renderAdminPanel() {
+  const cfg = getAdminConfig();
+
+  // 1. Pricing
+  document.getElementById('adm-price').value       = cfg.price      ?? 12;
+  document.getElementById('adm-trial-days').value  = cfg.trialDays  ?? 30;
+  document.getElementById('adm-currency').value    = cfg.currency   || 'USD';
+  document.getElementById('adm-trial-enabled').checked = cfg.trialEnabled !== false;
+
+  // 2. Users table
+  const users = getAdminUsers();
+  const tbody = document.getElementById('admin-users-tbody');
+  if (!users.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty" style="padding:16px;text-align:center;color:var(--muted);">Sin usuarios registrados aún.</td></tr>';
+  } else {
+    tbody.innerHTML = users.map((u,i) => {
+      const reg   = new Date(u.registeredAt).toLocaleDateString('es');
+      const daysLeft = u.status==='active' ? '∞' : Math.max(0, Math.ceil((new Date(u.trialEndsAt)-Date.now())/(86400000)));
+      const st    = u.status==='active' ? 'active' : daysLeft>0 ? 'trial' : 'expired';
+      const stLbl = { active:'Activo', trial:'Trial', expired:'Expirado' }[st];
+      return `<tr>
+        <td>${esc(u.eventTitle||'Sin nombre')}</td>
+        <td>${reg}</td>
+        <td><span class="status-badge status-${st}">${stLbl}</span></td>
+        <td>${daysLeft}</td>
+        <td style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="btn btn-sm btn-outline" onclick="extendTrial(${i},7)">+7d</button>
+          <button class="btn btn-sm btn-outline" onclick="extendTrial(${i},30)">+30d</button>
+          <button class="btn btn-sm btn-success" onclick="setUserActive(${i})">✅ Pago</button>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  // 3. Stats
+  const total   = users.length;
+  const active  = users.filter(u=>u.status==='active').length;
+  const trial   = users.filter(u=>u.status!=='active' && new Date(u.trialEndsAt)>Date.now()).length;
+  const expired = users.filter(u=>u.status!=='active' && new Date(u.trialEndsAt)<=Date.now()).length;
+  const price   = cfg.price ?? 12;
+  const currency= cfg.currency || 'USD';
+  document.getElementById('admin-stats-grid').innerHTML = `
+    <div class="admin-stat"><div class="as-num">${total}</div><div class="as-lbl">Total usuarios</div></div>
+    <div class="admin-stat"><div class="as-num" style="color:var(--warning)">${trial}</div><div class="as-lbl">En trial</div></div>
+    <div class="admin-stat"><div class="as-num" style="color:var(--success)">${active}</div><div class="as-lbl">Suscriptos</div></div>
+    <div class="admin-stat"><div class="as-num" style="color:var(--danger)">${expired}</div><div class="as-lbl">Expirados</div></div>
+    <div class="admin-stat"><div class="as-num" style="color:var(--primary)">${currency} ${active*price}</div><div class="as-lbl">Ingresos/mes est.</div></div>`;
+  const maxBar = Math.max(trial, active, expired, 1);
+  document.getElementById('admin-bar-chart').innerHTML = [
+    { lbl:'Trial', val:trial, color:'var(--warning)' },
+    { lbl:'Activos', val:active, color:'var(--success)' },
+    { lbl:'Expirados', val:expired, color:'var(--danger)' },
+  ].map(b=>`<div class="admin-bar-col">
+    <span style="font-size:.72rem;color:var(--muted);font-weight:700;">${b.val}</span>
+    <div class="admin-bar" style="height:${Math.round(b.val/maxBar*60)+4}px;background:${b.color};"></div>
+    <span class="admin-bar-lbl">${b.lbl}</span>
+  </div>`).join('');
+
+  // 4. Modules
+  const mods = cfg.modules || {};
+  document.getElementById('admin-modules-list').innerHTML = MODULE_DEFS.map(m => `
+    <div class="admin-toggle-row">
+      <span class="admin-toggle-label">${m.label}</span>
+      <label class="toggle-switch"><input type="checkbox" id="mod-${m.key}" ${mods[m.key]!==false?'checked':''} /><span class="toggle-slider"></span></label>
+    </div>`).join('');
+
+  // 5. Banner
+  const banner = cfg.banner || {};
+  document.getElementById('adm-banner-enabled').checked = !!banner.enabled;
+  document.getElementById('adm-banner-text').value = banner.text || '';
+  const colorRadio = document.querySelector(`input[name="adm-banner-color"][value="${banner.color||'#6c63ff'}"]`);
+  if (colorRadio) colorRadio.checked = true;
+
+  // 6. Access log
+  const logEl = document.getElementById('admin-access-log');
+  const log   = (cfg.accessLog||[]).slice(0,10);
+  logEl.innerHTML = log.length ? log.map(l=>`<div class="log-entry">🕐 ${new Date(l.at).toLocaleString('es')}</div>`).join('') : '<p style="font-size:.82rem;color:var(--muted);">Sin registros aún.</p>';
+}
+
+// ---- Admin Users (stored separately) ----
+function getAdminUsers() {
+  try { return JSON.parse(localStorage.getItem('admin-users') || '[]'); } catch { return []; }
+}
+function saveAdminUsers(users) { localStorage.setItem('admin-users', JSON.stringify(users)); }
+
+function registerCurrentUser() {
+  const users = getAdminUsers();
+  const existing = users.find(u => u.eventTitle === state.title);
+  if (existing) return;
+  const cfg = getAdminConfig();
+  const trialDays = cfg.trialDays ?? 30;
+  const now = Date.now();
+  users.push({
+    eventTitle: state.title,
+    registeredAt: new Date().toISOString(),
+    trialEndsAt: new Date(now + trialDays*86400000).toISOString(),
+    status: 'trial'
+  });
+  saveAdminUsers(users);
+}
+
+function extendTrial(idx, days) {
+  const users = getAdminUsers();
+  if (!users[idx]) return;
+  const current = new Date(users[idx].trialEndsAt);
+  const base    = current > new Date() ? current : new Date();
+  users[idx].trialEndsAt = new Date(base.getTime() + days*86400000).toISOString();
+  saveAdminUsers(users); renderAdminPanel();
+}
+
+function setUserActive(idx) {
+  const users = getAdminUsers();
+  if (!users[idx]) return;
+  users[idx].status = 'active'; saveAdminUsers(users); renderAdminPanel();
+}
+
+function exportUsersCSV() {
+  const users = getAdminUsers();
+  if (!users.length) { alert('Sin usuarios para exportar.'); return; }
+  const rows = [['Evento','Registro','Estado','Trial hasta','Días restantes']];
+  users.forEach(u => {
+    const dLeft = u.status==='active' ? '∞' : Math.max(0,Math.ceil((new Date(u.trialEndsAt)-Date.now())/86400000));
+    rows.push([u.eventTitle||'', u.registeredAt, u.status, u.trialEndsAt, dLeft]);
+  });
+  downloadCSV('usuarios-admin.csv', rows);
+}
+
+// ---- Save actions ----
+function saveAdminPricing() {
+  const cfg = getAdminConfig();
+  cfg.price        = parseFloat(document.getElementById('adm-price').value) || 12;
+  cfg.trialDays    = parseInt(document.getElementById('adm-trial-days').value) || 30;
+  cfg.currency     = document.getElementById('adm-currency').value;
+  cfg.trialEnabled = document.getElementById('adm-trial-enabled').checked;
+  saveAdminConfig(cfg);
+  alert('✅ Precios guardados.');
+}
+
+function saveAdminModules() {
+  const cfg = getAdminConfig();
+  cfg.modules = {};
+  MODULE_DEFS.forEach(m => { cfg.modules[m.key] = document.getElementById('mod-'+m.key)?.checked !== false; });
+  saveAdminConfig(cfg);
+  applyModuleToggles();
+  alert('✅ Módulos guardados.');
+}
+
+function saveAdminBanner() {
+  const cfg = getAdminConfig();
+  cfg.banner = {
+    enabled: document.getElementById('adm-banner-enabled').checked,
+    text:    document.getElementById('adm-banner-text').value.trim(),
+    color:   document.querySelector('input[name="adm-banner-color"]:checked')?.value || '#6c63ff'
+  };
+  saveAdminConfig(cfg);
+  applyAdminBanner();
+  alert('✅ Banner guardado.');
+}
+
+async function changeAdminPassword() {
+  const p1 = document.getElementById('adm-new-pwd1').value;
+  const p2 = document.getElementById('adm-new-pwd2').value;
+  if (p1.length < 6) { alert('Mínimo 6 caracteres.'); return; }
+  if (p1 !== p2)     { alert('Las contraseñas no coinciden.'); return; }
+  const cfg = getAdminConfig();
+  cfg.passwordHash = await sha256(p1);
+  saveAdminConfig(cfg);
+  document.getElementById('adm-new-pwd1').value = '';
+  document.getElementById('adm-new-pwd2').value = '';
+  alert('✅ Contraseña actualizada.');
+}
+
+// ---- Apply toggles & banner ----
+function applyModuleToggles() {
+  const cfg  = getAdminConfig();
+  const mods = cfg.modules || {};
+  MODULE_DEFS.filter(m=>m.tab).forEach(m => {
+    const enabled = mods[m.key] !== false;
+    const navBtn  = [...document.querySelectorAll('nav button')].find(b => b.getAttribute('onclick')?.includes(`'${m.tab}'`));
+    if (navBtn) navBtn.style.display = enabled ? '' : 'none';
+  });
+  // backup JSON buttons in header
+  const backupEnabled = mods['backup'] !== false;
+  document.querySelectorAll('header button, header label').forEach(el => {
+    if (el.textContent.includes('Backup') || el.textContent.includes('Importar')) el.style.display = backupEnabled ? '' : 'none';
+  });
+  // QR section inside invitations
+  const qrWrap = document.getElementById('qr-wrap');
+  const qrSection = qrWrap?.closest?.('.card');
+  if (qrSection) qrSection.style.display = mods['qr'] !== false ? '' : 'none';
+}
+
+function applyAdminBanner() {
+  const cfg    = getAdminConfig();
+  const banner = cfg.banner || {};
+  const el     = document.getElementById('admin-banner');
+  if (!el) return;
+  if (banner.enabled && banner.text) {
+    el.style.display     = 'block';
+    el.style.background  = banner.color || '#6c63ff';
+    el.style.color       = '#fff';
+    el.textContent       = banner.text;
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+// Ctrl+Shift+A shortcut
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.shiftKey && e.key === 'A') { e.preventDefault(); openAdminLogin(); }
+});
+
+// Auto-abrir admin si URL tiene ?admin
+if (window.location.search.includes('admin')) {
+  setTimeout(() => openAdminLogin(), 500);
+}
+
+// Auto-register current user on load
+registerCurrentUser();
+
+// Apply persisted settings on load
+applyModuleToggles();
+applyAdminBanner();
+
+// Restore admin session if still valid
+if (isAdminSessionActive()) {
+  document.getElementById('admin-header-badge').style.display = '';
+  document.getElementById('nav-admin-btn').style.display = '';
+}
+
+// ---- INIT TEMPLATES ----
+renderTemplateList();
+
+// ---- INIT ----
+function renderAll() {
+  renderGuests(); renderBudget(); renderAgenda();
+  renderTables(); renderTasks(); renderGallery(); renderMusicTab(); renderGifts();
+  renderInvitations(); renderNotes(); renderCheckin(); renderCountdown(); renderDashboard();
+  renderProviders();
+}
+renderAll();
+startCountdown();
+loadCoverImage();
+
+// Registrar Service Worker (PWA)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(e => console.warn('SW:', e));
+  });
+}
+
+// =====================================================
+// ===== AUTH / WELCOME SCREEN SYSTEM =====
+// =====================================================
+let _selectedPlan = null;
+
+function loadAppUsers() {
+  try { return JSON.parse(localStorage.getItem('app-users') || '[]'); } catch { return []; }
+}
+function saveAppUsers(users) { localStorage.setItem('app-users', JSON.stringify(users)); }
+
+function getAppSession() {
+  try { return JSON.parse(localStorage.getItem('app-session') || 'null'); } catch { return null; }
+}
+function saveAppSession(session) { localStorage.setItem('app-session', JSON.stringify(session)); }
+function clearAppSession() { localStorage.removeItem('app-session'); }
+
+function getCurrentUser() {
+  const session = getAppSession();
+  if (!session) return null;
+  const users = loadAppUsers();
+  return users.find(u => u.id === session.userId) || null;
+}
+
+async function registerUser(name, email, pwd, plan) {
+  const users = loadAppUsers();
+  if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
+    throw new Error('Este email ya está registrado.');
+  }
+  const pwdHash = await sha256(pwd);
+  const now = Date.now();
+  const id = 'u_' + now + '_' + Math.random().toString(36).slice(2,8);
+  const trialDays = plan === 'mievento' ? 30 : 0;
+  const user = {
+    id, name, email: email.toLowerCase(), passwordHash: pwdHash,
+    plan,
+    registeredAt: new Date(now).toISOString(),
+    trialEndsAt: plan === 'mievento' ? new Date(now + trialDays*86400000).toISOString() : null,
+    subscriptionEndsAt: plan === 'organizador' ? new Date(now + 365*86400000).toISOString() : null,
+    status: plan === 'mievento' ? 'trial' : 'active'
+  };
+  users.push(user);
+  saveAppUsers(users);
+  saveAppSession({ userId: id, at: now });
+  return user;
+}
+
+async function loginUser(email, pwd) {
+  const users = loadAppUsers();
+  const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+  if (!user) throw new Error('Email no encontrado.');
+  const hash = await sha256(pwd);
+  if (hash !== user.passwordHash) throw new Error('Contraseña incorrecta.');
+  saveAppSession({ userId: user.id, at: Date.now() });
+  return user;
+}
+
+function logoutUser() {
+  clearAppSession();
+  showWelcome();
+}
+
+function showWelcome() {
+  document.getElementById('welcome-screen').style.display = 'flex';
+  showPlans();
+}
+
+function hideWelcome() {
+  document.getElementById('welcome-screen').style.display = 'none';
+}
+
+function showPlans() {
+  _selectedPlan = null;
+  document.getElementById('plans-row').style.display = 'flex';
+  document.getElementById('auth-form-wrap').style.display = 'none';
+  document.getElementById('welcome-screen').querySelector('div[style*="margin-top:20px"]').style.display = '';
+}
+
+function selectPlan(plan) {
+  _selectedPlan = plan;
+  document.getElementById('plans-row').style.display = 'none';
+  document.getElementById('welcome-screen').querySelector('div[style*="margin-top:20px"]').style.display = 'none';
+  showRegisterForm();
+  const badge = document.getElementById('auth-selected-badge');
+  if (plan === 'mievento') {
+    badge.innerHTML = '<span class="auth-plan-badge free">Plan: Mi Evento — Gratis 1 mes</span>';
+  } else {
+    badge.innerHTML = '<span class="auth-plan-badge pro">Plan: Organizador de Eventos — $30/año</span>';
+  }
+}
+
+function showRegisterForm() {
+  document.getElementById('auth-form-wrap').style.display = 'block';
+  document.getElementById('auth-register-section').style.display = '';
+  document.getElementById('auth-login-section').style.display = 'none';
+  document.getElementById('reg-error').textContent = '';
+  document.getElementById('plans-row').style.display = 'none';
+}
+
+function showLoginForm() {
+  _selectedPlan = null;
+  document.getElementById('plans-row').style.display = 'none';
+  document.getElementById('welcome-screen').querySelector('div[style*="margin-top:20px"]').style.display = 'none';
+  document.getElementById('auth-form-wrap').style.display = 'block';
+  document.getElementById('auth-form-wrap').querySelector('.auth-back').style.display = '';
+  document.getElementById('auth-register-section').style.display = 'none';
+  document.getElementById('auth-login-section').style.display = '';
+  document.getElementById('login-error').textContent = '';
+  document.getElementById('auth-selected-badge').innerHTML = '';
+}
+
+async function doRegister() {
+  const name  = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pwd   = document.getElementById('reg-pwd').value;
+  const pwd2  = document.getElementById('reg-pwd2').value;
+  const errEl = document.getElementById('reg-error');
+  errEl.textContent = '';
+  if (!name)          { errEl.textContent = 'Ingresá tu nombre completo.'; return; }
+  if (!email)         { errEl.textContent = 'Ingresá tu email.'; return; }
+  if (pwd.length < 6) { errEl.textContent = 'La contraseña debe tener al menos 6 caracteres.'; return; }
+  if (pwd !== pwd2)   { errEl.textContent = 'Las contraseñas no coinciden.'; return; }
+  if (!_selectedPlan) { errEl.textContent = 'Error: no se seleccionó un plan.'; return; }
+
+  const btn = document.querySelector('#auth-register-section .btn-auth');
+  if (btn) { btn.disabled = true; btn.textContent = 'Creando cuenta...'; }
+
+  try {
+    // Intentar registrar en backend (Supabase)
+    let user = null;
+    try {
+      const res = await fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password: pwd, plan: _selectedPlan })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al registrar.');
+      user = data;
+    } catch (apiErr) {
+      // Si no hay backend disponible (dev local), usar localStorage
+      if (apiErr.message.includes('Failed to fetch') || apiErr.message.includes('NetworkError')) {
+        user = await registerUser(name, email, pwd, _selectedPlan);
+      } else {
+        throw apiErr;
+      }
+    }
+
+    // Guardar sesión local
+    saveAppSession({ userId: user.id, at: Date.now() });
+    // Sincronizar datos en localStorage
+    const users = loadAppUsers();
+    if (!users.find(u => u.id === user.id)) {
+      users.push({
+        id: user.id, name: user.name, email: user.email,
+        passwordHash: '', plan: user.plan, status: user.status,
+        registeredAt: user.registeredAt,
+        trialEndsAt: user.trialEndsAt,
+        subscriptionEndsAt: user.subscriptionEndsAt
+      });
+      saveAppUsers(users);
+    }
+    hideWelcome();
+    renderUserBar();
+  } catch (e) {
+    errEl.textContent = e.message;
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Crear cuenta'; }
+  }
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pwd   = document.getElementById('login-pwd').value;
+  const errEl = document.getElementById('login-error');
+  errEl.textContent = '';
+  if (!email || !pwd) { errEl.textContent = 'Completá email y contraseña.'; return; }
+
+  const btn = document.querySelector('#auth-login-section .btn-auth');
+  if (btn) { btn.disabled = true; btn.textContent = 'Ingresando...'; }
+
+  try {
+    let user = null;
+    try {
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: pwd })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al iniciar sesión.');
+      user = data;
+    } catch (apiErr) {
+      if (apiErr.message.includes('Failed to fetch') || apiErr.message.includes('NetworkError')) {
+        user = await loginUser(email, pwd);
+      } else {
+        throw apiErr;
+      }
+    }
+
+    // Sincronizar usuario desde Supabase en localStorage
+    const users = loadAppUsers();
+    const idx   = users.findIndex(u => u.id === user.id);
+    const localUser = {
+      id: user.id, name: user.name, email: user.email,
+      passwordHash: idx >= 0 ? users[idx].passwordHash : '',
+      plan: user.plan, status: user.status,
+      registeredAt: user.registeredAt,
+      trialEndsAt: user.trialEndsAt,
+      subscriptionEndsAt: user.subscriptionEndsAt
+    };
+    if (idx >= 0) users[idx] = localUser; else users.push(localUser);
+    saveAppUsers(users);
+    saveAppSession({ userId: user.id, at: Date.now() });
+    hideWelcome();
+    renderUserBar();
+  } catch (e) {
+    errEl.textContent = e.message;
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Ingresar'; }
+  }
+}
+
+function renderUserBar() {
+  const user = getCurrentUser();
+  const bar = document.getElementById('user-info-bar');
+  if (!user) { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  document.getElementById('uib-name').textContent = 'Hola, ' + user.name.split(' ')[0];
+  const planLabel = user.plan === 'organizador' ? 'Organizador de Eventos' : 'Mi Evento';
+  document.getElementById('uib-plan').textContent = planLabel;
+  let trialTxt = '';
+  if (user.plan === 'mievento') {
+    const dLeft = Math.max(0, Math.ceil((new Date(user.trialEndsAt) - Date.now()) / 86400000));
+    trialTxt = dLeft > 0 ? `Te quedan ${dLeft} días de prueba` : '⚠ Período de prueba expirado';
+  } else {
+    const sLeft = Math.max(0, Math.ceil((new Date(user.subscriptionEndsAt) - Date.now()) / 86400000));
+    trialTxt = sLeft > 0 ? `Suscripción activa · ${sLeft} días restantes` : '⚠ Suscripción expirada';
+  }
+  document.getElementById('uib-trial').textContent = trialTxt;
+}
+
+// Override getAdminUsers so the admin panel shows app-users
+const _origGetAdminUsers = getAdminUsers;
+function getAdminUsers() {
+  const appUsers = loadAppUsers();
+  if (!appUsers.length) return _origGetAdminUsers();
+  return appUsers.map(u => ({
+    eventTitle: u.name + ' (' + u.email + ')',
+    registeredAt: u.registeredAt,
+    trialEndsAt: u.trialEndsAt || u.subscriptionEndsAt,
+    status: u.status,
+    plan: u.plan
+  }));
+}
+
+// =====================================================
+// ===== MERCADOPAGO PAYMENT INTEGRATION =====
+// =====================================================
+
+async function iniciarPago(plan) {
+  const user = getCurrentUser();
+  if (!user) { showWelcome(); return; }
+
+  const btn = document.getElementById('btn-pagar-' + plan);
+  if (btn) { btn.disabled = true; btn.textContent = 'Redirigiendo...'; }
+
+  try {
+    const res = await fetch('/api/create-preference', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userEmail: user.email, userName: user.name, plan })
+    });
+    if (!res.ok) throw new Error('Error del servidor: ' + res.status);
+    const data = await res.json();
+    const url = data.sandbox_init_point || data.init_point;
+    if (!url) throw new Error('No se obtuvo URL de pago.');
+    window.location.href = url;
+  } catch (err) {
+    alert('No se pudo iniciar el pago: ' + err.message);
+    if (btn) { btn.disabled = false; btn.textContent = plan === 'organizador' ? 'Suscribirme — $30/año' : 'Pagar plan'; }
+  }
+}
+
+function handlePaymentReturn() {
+  const params = new URLSearchParams(window.location.search);
+  const pago  = params.get('pago');
+  const plan  = params.get('plan');
+  if (!pago) return;
+
+  // Limpiar params de la URL
+  const cleanUrl = window.location.pathname;
+  window.history.replaceState({}, '', cleanUrl);
+
+  if (pago === 'ok' && plan) {
+    const users   = loadAppUsers();
+    const session = getAppSession();
+    if (!session) return;
+    const idx = users.findIndex(u => u.id === session.userId);
+    if (idx === -1) return;
+
+    const now = Date.now();
+    if (plan === 'organizador') {
+      users[idx].plan = 'organizador';
+      users[idx].status = 'active';
+      users[idx].subscriptionEndsAt = new Date(now + 365*86400000).toISOString();
+      users[idx].trialEndsAt = null;
+    } else if (plan === 'mievento') {
+      users[idx].plan = 'mievento';
+      users[idx].status = 'active';
+      users[idx].trialEndsAt = new Date(now + 30*86400000).toISOString();
+    }
+    saveAppUsers(users);
+    renderUserBar();
+    showPaymentToast('ok', plan);
+  } else if (pago === 'error') {
+    showPaymentToast('error', null);
+  } else if (pago === 'pendiente') {
+    showPaymentToast('pendiente', null);
+  }
+}
+
+function showPaymentToast(type, plan) {
+  const msgs = {
+    ok:        plan === 'organizador' ? '✅ Pago aprobado. Plan Organizador activado.' : '✅ Pago aprobado. Plan actualizado.',
+    error:     '❌ El pago no fue aprobado. Podés intentar nuevamente.',
+    pendiente: '⏳ Tu pago está pendiente. Te avisaremos cuando se confirme.'
+  };
+  const colors = { ok: '#22c55e', error: '#ef4444', pendiente: '#f59e0b' };
+  const toast = document.createElement('div');
+  toast.textContent = msgs[type] || '';
+  Object.assign(toast.style, {
+    position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
+    background: colors[type], color: '#fff', padding: '14px 28px',
+    borderRadius: '10px', fontWeight: '700', fontSize: '.95rem',
+    zIndex: '9999', boxShadow: '0 4px 20px rgba(0,0,0,.25)',
+    transition: 'opacity .4s'
+  });
+  document.body.appendChild(toast);
+  setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 400); }, 4000);
+}
+
+// ---- COVER IMAGE ----
+const DEFAULT_COVER = "url('https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=1400&q=80&fit=crop')";
+
+function applyCoverImage(url) {
+  const img = url ? `url('${url}')` : DEFAULT_COVER;
+  document.getElementById('welcome-screen').style.backgroundImage =
+    `linear-gradient(135deg,rgba(30,27,75,.82) 0%,rgba(76,29,149,.78) 60%,rgba(109,40,217,.72) 100%), ${img}`;
+  const preview = document.getElementById('cover-preview');
+  if (preview) preview.src = url || 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=400&q=60&fit=crop';
+}
+
+function loadCoverImage() {
+  const saved = localStorage.getItem('cover-image');
+  applyCoverImage(saved || '');
+}
+
+function uploadCoverImage(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 3 * 1024 * 1024) { alert('La imagen es muy grande. Máximo 3MB.'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    localStorage.setItem('cover-image', e.target.result);
+    applyCoverImage(e.target.result);
+    showPaymentToast('ok', null);
+    document.getElementById('cover-preview').src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function saveCoverUrl() {
+  const url = document.getElementById('cover-url').value.trim();
+  if (!url) { alert('Ingresá una URL válida.'); return; }
+  localStorage.setItem('cover-image', url);
+  applyCoverImage(url);
+  document.getElementById('cover-url').value = '';
+  showPaymentToast('ok', null);
+}
+
+function resetCoverImage() {
+  localStorage.removeItem('cover-image');
+  applyCoverImage('');
+  showPaymentToast('ok', null);
+}
+
+// ---- PROVIDERS ----
+function addProvider() {
+  const name = document.getElementById('prov-name').value.trim();
+  if (!name) { alert('Ingresá el nombre del prestador.'); return; }
+  const rubro = document.getElementById('prov-rubro').value;
+  if (!rubro) { alert('Elegí un rubro.'); return; }
+  if (!state.providers) state.providers = [];
+  state.providers.push({
+    id: Date.now(),
+    name,
+    rubro,
+    contact:  document.getElementById('prov-contact').value.trim(),
+    email:    document.getElementById('prov-email').value.trim(),
+    website:  document.getElementById('prov-website').value.trim(),
+    city:     document.getElementById('prov-city').value.trim(),
+    province: document.getElementById('prov-province').value.trim(),
+    rating:   parseInt(document.getElementById('prov-rating').value) || 5,
+    notes:    document.getElementById('prov-notes').value.trim()
+  });
+  save();
+  ['prov-name','prov-contact','prov-email','prov-website','prov-city','prov-province','prov-notes'].forEach(i => document.getElementById(i).value = '');
+  document.getElementById('prov-rubro').value = '';
+  document.getElementById('prov-rating').value = '5';
+  renderProviders();
+}
+
+function deleteProvider(id) {
+  state.providers = (state.providers || []).filter(p => p.id !== id);
+  save(); renderProviders();
+}
+
+function renderProviders() {
+  if (!state.providers) state.providers = [];
+  const search   = (document.getElementById('prov-search') || {value:''}).value.toLowerCase();
+  const rubro    = (document.getElementById('prov-filter-rubro') || {value:''}).value;
+  const province = (document.getElementById('prov-filter-province') || {value:''}).value;
+
+  // Actualizar filtro de provincias
+  const provSel = document.getElementById('prov-filter-province');
+  if (provSel) {
+    const provinces = [...new Set(state.providers.map(p => p.province).filter(Boolean))].sort();
+    const cur = provSel.value;
+    provSel.innerHTML = '<option value="">Todas las provincias</option>' +
+      provinces.map(p => `<option${p===cur?' selected':''}>${esc(p)}</option>`).join('');
+  }
+
+  let list = state.providers.filter(p => {
+    const ms = p.name.toLowerCase().includes(search) ||
+               (p.city||'').toLowerCase().includes(search) ||
+               (p.rubro||'').toLowerCase().includes(search);
+    const mr = !rubro    || p.rubro === rubro;
+    const mp = !province || p.province === province;
+    return ms && mr && mp;
+  });
+
+  const grid = document.getElementById('providers-grid');
+  if (!grid) return;
+
+  if (!list.length) {
+    grid.innerHTML = '<p class="empty" style="grid-column:1/-1;">No hay prestadores cargados aún.</p>';
+    return;
+  }
+
+  const stars = n => '⭐'.repeat(n);
+  grid.innerHTML = list.map(p => `
+    <div class="provider-card">
+      <button class="provider-del no-print" onclick="deleteProvider(${p.id})" title="Eliminar">✕</button>
+      <div class="provider-rubro">${esc(p.rubro)}</div>
+      <div class="provider-name">${esc(p.name)}</div>
+      ${p.city || p.province ? `<div class="provider-location">📍 ${[p.city, p.province].filter(Boolean).map(esc).join(', ')}</div>` : ''}
+      <div class="provider-rating">${stars(p.rating)} ${ ['','Malo','Regular','Bueno','Muy bueno','Excelente'][p.rating] }</div>
+      ${p.contact ? `<div class="provider-contact">📞 <a href="https://wa.me/${p.contact.replace(/\D/g,'')}" target="_blank">${esc(p.contact)}</a></div>` : ''}
+      ${p.email   ? `<div class="provider-contact">✉️ <a href="mailto:${esc(p.email)}">${esc(p.email)}</a></div>` : ''}
+      ${p.website ? `<div class="provider-contact">🌐 <a href="${esc(p.website)}" target="_blank">${esc(p.website)}</a></div>` : ''}
+      ${p.notes   ? `<div class="provider-notes">${esc(p.notes)}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+function exportProvidersPDF() {
+  const list = state.providers || [];
+  if (!list.length) { alert('No hay prestadores para exportar.'); return; }
+  const stars = n => '★'.repeat(n) + '☆'.repeat(5-n);
+  const rows = list.map(p => `
+    <tr>
+      <td>${esc(p.name)}</td>
+      <td>${esc(p.rubro)}</td>
+      <td>${[p.city, p.province].filter(Boolean).map(esc).join(', ')}</td>
+      <td>${esc(p.contact || '')}</td>
+      <td>${esc(p.email || '')}</td>
+      <td>${esc(p.website || '')}</td>
+      <td style="color:#f59e0b;">${stars(p.rating)}</td>
+      <td>${esc(p.notes || '')}</td>
+    </tr>`).join('');
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <title>Directorio de Prestadores</title>
+    <style>
+      body { font-family: 'Segoe UI', sans-serif; padding: 24px; color: #1e1b4b; }
+      h1 { color: #6c63ff; font-size: 1.4rem; margin-bottom: 4px; }
+      p  { color: #888; font-size: .85rem; margin-bottom: 20px; }
+      table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+      th { background: #6c63ff; color: #fff; padding: 8px 10px; text-align: left; }
+      td { padding: 7px 10px; border-bottom: 1px solid #ede9fe; vertical-align: top; }
+      tr:nth-child(even) td { background: #f8f7ff; }
+      @media print { button { display: none; } }
+    </style>
+  </head><body>
+    <h1>🏢 Directorio de Prestadores</h1>
+    <p>Generado el ${new Date().toLocaleDateString('es-AR')} · ${list.length} prestador(es)</p>
+    <button onclick="window.print()" style="margin-bottom:16px;padding:8px 20px;background:#6c63ff;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:.9rem;">🖨 Imprimir / Guardar PDF</button>
+    <table>
+      <thead><tr>
+        <th>Nombre</th><th>Rubro</th><th>Ubicación</th>
+        <th>Teléfono</th><th>Email</th><th>Web/IG</th>
+        <th>Calif.</th><th>Comentarios</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </body></html>`);
+  win.document.close();
+}
+
+function exportProvidersCSV() {
+  const list = state.providers || [];
+  if (!list.length) { alert('No hay prestadores para exportar.'); return; }
+  const headers = ['Nombre','Rubro','Ciudad','Provincia','Teléfono','Email','Web/Instagram','Calificación','Comentarios'];
+  const ratings = ['','Malo','Regular','Bueno','Muy bueno','Excelente'];
+  const rows = list.map(p => [
+    p.name, p.rubro, p.city||'', p.province||'',
+    p.contact||'', p.email||'', p.website||'',
+    ratings[p.rating]||'', p.notes||''
+  ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(','));
+  const csv = '\uFEFF' + [headers.join(','), ...rows].join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+  a.download = `prestadores_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+// ---- INIT: check session ----
+(function initAuth() {
+  const user = getCurrentUser();
+  if (user) {
+    hideWelcome();
+    renderUserBar();
+  } else {
+    showWelcome();
+  }
+  handlePaymentReturn();
+})();
+</script>
+</body>
+</html>

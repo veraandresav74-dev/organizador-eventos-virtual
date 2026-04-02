@@ -1,0 +1,9 @@
+{
+  "name": "organizador-eventos-virtual",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "mercadopago": "^2.0.0",
+    "@supabase/supabase-js": "^2.0.0"
+  }
+}
